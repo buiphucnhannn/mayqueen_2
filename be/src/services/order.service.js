@@ -3,7 +3,15 @@ import { env } from "../config/env.js";
 import { orderRepository } from "../repositories/order.repository.js";
 import { productRepository } from "../repositories/product.repository.js";
 import { notifyService } from "./notify.service.js";
-import { PAYMENT, bankTransferInfo, isPaid, shippingFeeFor } from "./payment.service.js";
+import {
+  PAYMENT,
+  bankAccount,
+  bankTransferInfo,
+  isPaid,
+  shippingFeeFor,
+  signPaymentRef,
+  verifyPaymentRef,
+} from "./payment.service.js";
 import { ApiError } from "../utils/ApiError.js";
 import { buildPageMeta } from "../utils/pagination.js";
 import { searchRegex } from "../utils/search.js";
@@ -34,9 +42,16 @@ const placedResult = (order, extra = {}) => ({
   total: order.total,
   paymentMethod: order.paymentMethod ?? PAYMENT.COD,
   paymentStatus: order.paymentStatus ?? "unpaid",
+  paymentClaimed: Boolean(order.paymentClaimedAt), // khách đã bấm "Xác nhận đã thanh toán"
   payment: bankTransferInfo(order),
   ...extra,
 });
+
+const bankUnavailable = () =>
+  new ApiError(422, "Hình thức chuyển khoản tạm thời chưa hỗ trợ", {
+    code: "PAYMENT_METHOD_UNAVAILABLE",
+    details: [{ field: "body.paymentMethod" }],
+  });
 
 /** Đơn chuyển khoản còn cần khách trả tiền → hiện lại QR khi khách tra cứu */
 const awaitingTransfer = (order) =>
@@ -66,6 +81,17 @@ async function withOptionNotes(orders) {
 
 export const orderService = {
   /**
+   * Khách chọn "Chuyển khoản" ở trang thanh toán → cấp trước 1 mã đơn chưa dùng + chữ ký (paymentRef) + tài khoản
+   * nhận tiền. Trang thanh toán dựng QR ngay (nội dung = mã này, số tiền = tổng đang thấy); khách bấm
+   * "Xác nhận đã thanh toán" → create() dùng đúng mã này cho đơn. Không ghi gì vào DB (mã chưa dùng thì bỏ).
+   */
+  async reserveTransfer() {
+    if (!env.bank.enabled) throw bankUnavailable();
+    const code = await uniqueCode();
+    return { code, paymentRef: signPaymentRef(code), ...bankAccount() };
+  },
+
+  /**
    * Tạo đơn: GIÁ LUÔN TÍNH LẠI từ DB (không tin giá gửi từ trình duyệt),
    * gộp các dòng trùng sản phẩm + gói, áp phí ship theo hình thức thanh toán
    * (chuyển khoản trước → miễn phí vận chuyển; COD → miễn phí khi đủ ngưỡng).
@@ -75,6 +101,7 @@ export const orderService = {
     items,
     lang,
     paymentMethod = PAYMENT.COD,
+    paymentRef,
     consent,
     idempotencyKey,
     expectedTotal,
@@ -86,12 +113,23 @@ export const orderService = {
       if (existing) return placedResult(existing, { duplicate: true });
     }
 
-    // Chưa cấu hình tài khoản nhận tiền (BANK_ACCOUNT_NO rỗng) → không nhận đơn chuyển khoản
-    if (paymentMethod === PAYMENT.BANK && !env.bank.enabled)
-      throw new ApiError(422, "Hình thức chuyển khoản tạm thời chưa hỗ trợ", {
-        code: "PAYMENT_METHOD_UNAVAILABLE",
-        details: [{ field: "body.paymentMethod" }],
-      });
+    // Chuyển khoản: mã đơn = mã đã cấp trước (nội dung trên QR khách vừa chuyển) — phải đúng chữ ký server
+    let transferCode = null;
+    if (paymentMethod === PAYMENT.BANK) {
+      // Chưa cấu hình tài khoản nhận tiền (BANK_ACCOUNT_NO rỗng) → không nhận đơn chuyển khoản
+      if (!env.bank.enabled) throw bankUnavailable();
+      transferCode = verifyPaymentRef(paymentRef);
+      if (!transferCode)
+        throw new ApiError(422, "Mã thanh toán không hợp lệ, vui lòng tải lại trang", {
+          code: "PAYMENT_REF_INVALID",
+          details: [{ field: "body.paymentRef" }],
+        });
+      // mã đã thuộc về 1 đơn khác (đặt lần 2 bằng mã cũ) → website lấy mã mới cho khách
+      if (await orderRepository.codeExists(transferCode))
+        throw new ApiError(409, "Mã thanh toán đã được dùng cho đơn khác", {
+          code: "PAYMENT_REF_USED",
+        });
+    }
 
     const products = await productRepository.findActiveBySlugs([
       ...new Set(items.map((i) => i.slug)),
@@ -144,13 +182,15 @@ export const orderService = {
     let order;
     try {
       order = await orderRepository.create({
-        code: await uniqueCode(),
+        code: transferCode ?? (await uniqueCode()),
         customer,
         lines,
         subtotal,
         shippingFee,
         total,
         paymentMethod,
+        // đơn chuyển khoản chỉ được gửi khi khách bấm "Xác nhận đã thanh toán" → ghi nhận lúc khách báo đã chuyển
+        ...(transferCode && { paymentClaimedAt: new Date() }),
         lang,
         ...(consent && { consent }),
         ...(idempotencyKey && { idempotencyKey }),
@@ -164,6 +204,11 @@ export const orderService = {
         const existing = await orderRepository.findByIdempotencyKey(idempotencyKey);
         if (existing) return placedResult(existing, { duplicate: true });
       }
+      // 2 đơn khác nhau cùng dùng 1 mã chuyển khoản, chạy song song → đơn sau báo mã đã dùng
+      if (err?.code === 11000 && transferCode && err.keyPattern?.code)
+        throw new ApiError(409, "Mã thanh toán đã được dùng cho đơn khác", {
+          code: "PAYMENT_REF_USED",
+        });
       throw err;
     }
 
@@ -194,6 +239,7 @@ export const orderService = {
       createdAt,
       paymentMethod: order.paymentMethod ?? PAYMENT.COD,
       paymentStatus: order.paymentStatus ?? "unpaid",
+      paymentClaimed: Boolean(order.paymentClaimedAt),
       // chỉ gửi QR / số tài khoản khi khách còn phải chuyển khoản
       payment: awaitingTransfer(order) ? bankTransferInfo(order) : null,
     };

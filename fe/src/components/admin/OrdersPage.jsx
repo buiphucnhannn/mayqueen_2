@@ -42,6 +42,7 @@ import {
   TableShell,
   Textarea,
   dateTime,
+  dateTimeFull,
   td,
   tdc,
   th,
@@ -156,11 +157,16 @@ const StatusBadge = ({ status }) => (
 const isTransfer = (order) => order?.paymentMethod === "bank_transfer";
 // đơn cũ (trước khi có chuyển khoản) không có paymentStatus → coi là chưa nhận tiền
 const paymentStatusOf = (order) => order?.paymentStatus ?? "unpaid";
+// nhãn hiển thị: chưa nhận tiền nhưng khách đã bấm "Xác nhận đã thanh toán" → "Khách báo đã chuyển khoản"
+const paymentLabelOf = (order) =>
+  paymentStatusOf(order) === "unpaid" && order?.paymentClaimedAt
+    ? "claimed"
+    : paymentStatusOf(order);
 
 /** Nhãn thanh toán: COD (xám) · Chuyển khoản chờ tiền (vàng) · Đã thanh toán (xanh) */
 function PaymentBadge({ order }) {
   if (!isTransfer(order)) return <Badge>{PAYMENT_METHOD.cod.label}</Badge>;
-  const s = PAYMENT_STATUS[paymentStatusOf(order)];
+  const s = PAYMENT_STATUS[paymentLabelOf(order)];
   return <Badge tone={order.status === "cancelled" ? "neutral" : s.tone}>{s.label}</Badge>;
 }
 
@@ -186,7 +192,7 @@ function PaymentSection({ order, onSaved }) {
           }
         : {
             title: "Bỏ xác nhận thanh toán?",
-            message: `Đơn ${order.code} sẽ quay về “Chờ chuyển khoản” và khách tra cứu đơn sẽ thấy lại mã QR.`,
+            message: `Đơn ${order.code} sẽ quay về chưa nhận tiền và khách tra cứu đơn sẽ thấy lại mã QR.`,
             confirmLabel: "Bỏ xác nhận",
             cancelLabel: "Giữ nguyên",
             danger: true,
@@ -246,7 +252,7 @@ function PaymentSection({ order, onSaved }) {
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <p className="flex items-center gap-1.5 text-sm font-semibold text-emerald-800">
             <BadgeCheck className="size-4" aria-hidden="true" />
-            Đã nhận tiền{order.paidAt && ` lúc ${dateTime(order.paidAt)}`}
+            Đã nhận tiền{order.paidAt && ` lúc ${dateTimeFull(order.paidAt)}`}
           </p>
           <button
             type="button"
@@ -259,6 +265,12 @@ function PaymentSection({ order, onSaved }) {
         </div>
       ) : (
         <>
+          {order.paymentClaimedAt && (
+            <p className="mt-3 rounded-xl bg-white/70 px-3 py-2 text-center text-xs text-amber-900">
+              Khách đã bấm <strong>“Xác nhận đã thanh toán”</strong> lúc{" "}
+              <strong className="whitespace-nowrap">{dateTimeFull(order.paymentClaimedAt)}</strong>
+            </p>
+          )}
           {/* căn giữa + text-balance: các dòng dài đều nhau; số tiền / mã đơn không bị ngắt giữa chừng */}
           <p className="text-ink-soft mt-4 text-center text-xs leading-relaxed text-balance">
             Kiểm tra app ngân hàng đã nhận{" "}
@@ -407,7 +419,7 @@ function OrderDrawer({ order, onClose, onSaved, onDelete }) {
       subtitle={
         <span className="text-ink-muted flex flex-wrap items-center gap-2 text-xs">
           <StatusBadge status={order.status} /> <PaymentBadge order={order} /> Đặt lúc{" "}
-          {dateTime(order.createdAt)}
+          {dateTimeFull(order.createdAt)}
         </span>
       }
       footer={
@@ -690,7 +702,7 @@ export default function OrdersPage() {
         >
           <Landmark className="size-4 shrink-0" aria-hidden="true" />
           <span>
-            <strong>{stats.awaitingPayment} đơn chuyển khoản</strong> đang chờ xác nhận nhận tiền —
+            <strong>{stats.awaitingPayment} đơn chuyển khoản</strong> đang chờ kiểm tra tiền về —
             bấm để xem và đối chiếu sao kê.
           </span>
         </button>

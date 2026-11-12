@@ -43,6 +43,9 @@ const orderSchema = new Schema(
     // Đơn cũ (trước khi có chuyển khoản) không có 2 trường này → đọc như "unpaid" (xem payment.service isPaid)
     paymentStatus: { type: String, enum: PAYMENT_STATUSES, default: "unpaid" },
     paidAt: { type: Date, default: null }, // lúc admin xác nhận đã nhận tiền
+    // lúc KHÁCH bấm "Xác nhận đã thanh toán" (khách báo đã chuyển khoản — admin vẫn phải đối chiếu sao kê).
+    // Đơn chuyển khoản đặt trước khi có luồng này: null (khách chưa báo).
+    paymentClaimedAt: { type: Date, default: null },
     // Nhật ký xác nhận / bỏ xác nhận thanh toán (đối soát: ai cũng thấy đơn được xác nhận nhận tiền lúc nào)
     paymentHistory: {
       type: [

@@ -187,7 +187,13 @@ export function orderEmail(order, { siteUrl = "", units = {} } = {}) {
       ${row(
         "Thanh toán",
         transfer
-          ? pill("Chuyển khoản — chờ nhận tiền", C.amber, C.amberBg)
+          ? pill(
+              order.paymentClaimedAt
+                ? "Khách báo đã chuyển khoản — cần kiểm tra"
+                : "Chuyển khoản — chờ nhận tiền",
+              C.amber,
+              C.amberBg,
+            )
           : pill("COD — thu khi giao", C.forest, C.sage50),
       )}
       ${transfer ? row("Nội dung CK", `<strong style="${NUM}font-weight:700;letter-spacing:1px;">${esc(order.code)}</strong>`) : ""}
@@ -209,7 +215,7 @@ export function orderEmail(order, { siteUrl = "", units = {} } = {}) {
     ${adminLink ? button(adminLink, "Mở đơn trong trang quản trị") : ""}
     <p style="margin:14px auto 0;max-width:460px;text-align:center;font-family:${SANS};font-size:12.5px;line-height:1.6;color:${C.muted};">${
       transfer
-        ? `Đối chiếu sao kê: khoản ${vnd(order.total)} với nội dung <strong>${esc(order.code)}</strong>,<br>rồi bấm “Xác nhận đã thanh toán” trong trang quản&nbsp;trị.`
+        ? `Khách đã bấm “Xác nhận đã thanh toán”. Kiểm tra sao kê có khoản ${vnd(order.total)} với nội dung <strong>${esc(order.code)}</strong>,<br>rồi bấm “Xác nhận đã thanh toán” trong trang quản&nbsp;trị.`
         : "Gọi xác nhận với khách trong giờ&nbsp;làm&nbsp;việc,<br>sau đó chuyển trạng thái đơn trong trang quản&nbsp;trị."
     }</p>`;
 
@@ -217,7 +223,7 @@ export function orderEmail(order, { siteUrl = "", units = {} } = {}) {
     `ĐƠN HÀNG MỚI ${order.code} — ${vnd(order.total)}`,
     `Đặt lúc: ${when(order.createdAt)} · ${payLabel}`,
     transfer
-      ? `Chuyển khoản: CHỜ NHẬN TIỀN — đối chiếu sao kê khoản ${vnd(order.total)} nội dung "${order.code}" rồi bấm "Xác nhận đã thanh toán".`
+      ? `Chuyển khoản: KHÁCH BÁO ĐÃ CHUYỂN — kiểm tra sao kê có khoản ${vnd(order.total)} nội dung "${order.code}" rồi bấm "Xác nhận đã thanh toán".`
       : null,
     "",
     `Khách hàng: ${c.name}`,

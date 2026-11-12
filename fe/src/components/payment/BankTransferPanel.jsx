@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Check, Copy, Download, Landmark, ScanLine } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
 
@@ -23,6 +23,9 @@ const TEXT = {
       "Đang đặt bằng điện thoại? Bấm “Tải ảnh mã QR”, rồi trong app ngân hàng chọn Quét QR → chọn ảnh từ thư viện. Hoặc sao chép số tài khoản để chuyển thủ công.",
     after:
       "Sau khi nhận được tiền, chúng tôi sẽ xác nhận và gọi lại cho bạn để giao hàng. Đơn chuyển khoản được miễn phí vận chuyển.",
+    inlineTitle: "Quét mã để thanh toán",
+    inlineLead: "Mở app ngân hàng, chọn Quét QR — số tiền và nội dung đã điền sẵn.",
+    inlineAfter: "Chuyển khoản xong, bấm “Xác nhận đã thanh toán” để hoàn tất đơn hàng.",
   },
   en: {
     title: "Scan to pay by bank transfer",
@@ -42,6 +45,9 @@ const TEXT = {
       "Ordering on your phone? Tap “Save QR image”, then in your banking app choose Scan QR → pick the image from your gallery. Or copy the account number to transfer manually.",
     after:
       "Once we receive your payment we'll confirm and call you to arrange delivery. Bank-transfer orders ship free.",
+    inlineTitle: "Scan to pay",
+    inlineLead: "Open your banking app and choose Scan QR — amount and note are filled in.",
+    inlineAfter: "Once transferred, press “I've paid” to complete your order.",
   },
 };
 
@@ -116,8 +122,22 @@ function InfoRow({ label, value, copyValue, strong, hint, T }) {
  * nội dung có nút sao chép + tải ảnh QR (điện thoại không tự quét được màn hình của chính nó).
  * payment: { bankName, accountNo, accountName, amount, content, qr } — do backend trả (be/src/services/payment.service.js).
  */
-export default function BankTransferPanel({ payment, lang = "vi", className }) {
+/**
+ * variant "card" (mặc định): khối riêng có tiêu đề lớn + nhãn trạng thái (màn đặt xong, tra cứu đơn).
+ * variant "inline": nằm ngay trong khung "Hình thức thanh toán" ở trang thanh toán — tiêu đề nhỏ, không nhãn,
+ *   dòng cuối nhắc bấm "Xác nhận đã thanh toán".
+ * badge: chữ trên nhãn trạng thái (card) — mặc định "Chờ thanh toán".
+ */
+export default function BankTransferPanel({
+  payment,
+  lang = "vi",
+  className,
+  variant = "card",
+  badge,
+}) {
   const T = TEXT[lang] ?? TEXT.vi;
+  const inline = variant === "inline";
+  const titleId = useId();
   const [svg, setSvg] = useState("");
 
   // Thư viện vẽ QR chỉ tải khi cần (không làm nặng các trang khác)
@@ -156,24 +176,47 @@ export default function BankTransferPanel({ payment, lang = "vi", className }) {
 
   return (
     <section
-      className={cn("bg-pearl shadow-card text-ink rounded-lg p-6 text-left sm:p-8", className)}
-      aria-labelledby="bank-transfer-title"
+      className={cn(
+        "text-ink text-left",
+        inline
+          ? "border-sage-200 bg-sage-50/50 rounded-3xl border p-4 sm:p-5"
+          : "bg-pearl shadow-card rounded-lg p-6 sm:p-8",
+        className,
+      )}
+      aria-labelledby={titleId}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3
-          id="bank-transfer-title"
-          className="text-forest flex items-center gap-2 font-serif text-2xl"
+          id={titleId}
+          className={cn(
+            "text-forest flex items-center gap-2",
+            inline ? "text-base font-semibold" : "font-serif text-2xl",
+          )}
         >
-          <ScanLine className="text-sage-600 size-6" aria-hidden="true" />
-          {T.title}
+          <ScanLine
+            className={cn("text-sage-600", inline ? "size-5" : "size-6")}
+            aria-hidden="true"
+          />
+          {inline ? T.inlineTitle : T.title}
         </h3>
-        <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
-          {T.awaiting}
-        </span>
+        {!inline && (
+          <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+            {badge ?? T.awaiting}
+          </span>
+        )}
       </div>
-      <p className="text-ink-soft mt-2 text-sm leading-relaxed">{T.lead}</p>
+      <p className="text-ink-soft mt-1.5 text-sm leading-relaxed">
+        {inline ? T.inlineLead : T.lead}
+      </p>
 
-      <div className="mt-6 grid items-start gap-6 md:grid-cols-[minmax(0,15rem)_1fr]">
+      <div
+        className={cn(
+          "grid items-start gap-5",
+          inline
+            ? "mt-4 md:grid-cols-[minmax(0,13rem)_1fr]"
+            : "mt-6 md:grid-cols-[minmax(0,15rem)_1fr]",
+        )}
+      >
         <div className="mx-auto w-full max-w-60">
           <div className="border-forest/10 rounded-2xl border bg-white p-3 shadow-sm">
             <p className="text-forest flex items-center justify-center gap-1.5 pb-2 text-xs font-semibold">
@@ -204,7 +247,7 @@ export default function BankTransferPanel({ payment, lang = "vi", className }) {
           </button>
         </div>
 
-        <dl className="bg-cream/60 rounded-2xl px-4 sm:px-5">
+        <dl className={cn("rounded-2xl px-4 sm:px-5", inline ? "bg-white" : "bg-cream/60")}>
           <InfoRow T={T} label={T.bank} value={payment.bankName} />
           <InfoRow
             T={T}
@@ -233,8 +276,13 @@ export default function BankTransferPanel({ payment, lang = "vi", className }) {
       </div>
 
       <p className="text-ink-muted mt-5 text-xs leading-relaxed md:hidden">{T.mobile}</p>
-      <p className="bg-sage-50 text-sage-800 mt-4 rounded-xl px-4 py-3 text-sm leading-relaxed">
-        {T.after}
+      <p
+        className={cn(
+          "mt-4 rounded-xl px-4 py-3 text-sm leading-relaxed",
+          inline ? "text-forest bg-white font-medium" : "bg-sage-50 text-sage-800",
+        )}
+      >
+        {inline ? T.inlineAfter : T.after}
       </p>
     </section>
   );

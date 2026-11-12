@@ -121,8 +121,8 @@ export const ui = {
     codNote: t("Kiểm tra hàng rồi mới thanh toán", "Inspect your order, then pay"),
     bank: t("Chuyển khoản ngân hàng (quét mã QR)", "Bank transfer (scan QR)"),
     bankNote: t(
-      "Đặt xong chỉ cần quét mã QR bằng app ngân hàng",
-      "After ordering, just scan the QR in your banking app",
+      "Có mã QR ngay, quét bằng app ngân hàng là xong",
+      "Get a QR code right away — scan it in your banking app",
     ),
     freeShipBadge: t("Freeship", "Free shipping"),
     transferTip: t(
@@ -239,6 +239,9 @@ export const ui = {
     },
     paid: t("Đã thanh toán", "Paid"),
     awaitingPayment: t("Chờ thanh toán", "Awaiting payment"),
+    // khách đã bấm "Xác nhận đã thanh toán", shop đang đối chiếu tiền về
+    verifyingPayment: t("Đang kiểm tra thanh toán", "Verifying payment"),
+    reviewQr: t("Chưa chuyển khoản được? Xem lại mã QR", "Haven't paid yet? Show the QR code"),
     help: t("Cần hỗ trợ về đơn hàng?", "Need help with your order?"),
     helpText: t(
       "Gọi hotline / Zalo — chuyên viên Mayqueen hỗ trợ 08:00–22:00 mỗi ngày.",

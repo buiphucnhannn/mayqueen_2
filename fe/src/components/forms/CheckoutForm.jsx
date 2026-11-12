@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import Honeypot from "@/components/forms/Honeypot";
 import Image from "@/components/ui/Img";
@@ -22,6 +22,7 @@ import { useCart } from "@/context/CartContext";
 import { href } from "@/i18n";
 import { api } from "@/lib/api";
 import { optionForQty } from "@/lib/pack";
+import { vietQrPayload } from "@/lib/vietqr";
 import ConsentCheckbox, { consentPayload } from "@/components/forms/ConsentCheckbox";
 import {
   NAME_MAX,
@@ -35,14 +36,44 @@ import {
 
 const initial = { name: "", phone: "", address: "", province: "", note: "" };
 const LAST_ORDER = "mq_last_order"; // sessionStorage: đơn vừa đặt (hiện lại khi tải lại trang thành công)
+// sessionStorage: mã đơn đã cấp cho QR chuyển khoản — tải lại trang vẫn GIỮ ĐÚNG mã (khách có thể đã chuyển tiền
+// với nội dung này), chỉ bỏ khi đặt xong
+const TRANSFER_REF = "mq_transfer_ref";
+
+const readStoredTransfer = () => {
+  try {
+    const t = JSON.parse(sessionStorage.getItem(TRANSFER_REF) ?? "null");
+    return t?.code && t?.paymentRef && t?.accountNo ? t : null;
+  } catch {
+    return null;
+  }
+};
+const storeTransfer = (t) => {
+  try {
+    if (t) sessionStorage.setItem(TRANSFER_REF, JSON.stringify(t));
+    else sessionStorage.removeItem(TRANSFER_REF);
+  } catch {}
+};
 
 // Thông báo lỗi riêng của trang đặt hàng (theo ngôn ngữ trang)
 const MESSAGES = {
   vi: {
+    placeOrderPaid: "Xác nhận đã thanh toán",
+    paidHint: "Bấm sau khi bạn đã chuyển khoản thành công.",
+    transferLoading: "Đang tạo mã QR…",
+    transferError: "Chưa tạo được mã QR.",
+    retry: "Thử lại",
+    transferNotReady: "Mã QR chưa sẵn sàng, vui lòng đợi giây lát rồi bấm lại.",
+    refRenewed:
+      "Mã thanh toán vừa được làm mới, vui lòng quét lại mã QR. Nếu bạn đã chuyển khoản theo mã cũ, hãy gọi hotline {phone} để được hỗ trợ.",
+    thanksPaid:
+      "Cảm ơn bạn! Chúng tôi đã nhận được xác nhận chuyển khoản, sẽ kiểm tra và gọi xác nhận đơn sớm nhất.",
+    reviewQr: "Chưa chuyển khoản được? Xem lại mã QR",
+    checking: "Đang kiểm tra",
     network:
-      "Mạng chậm hoặc mất kết nối nên chưa nhận được xác nhận. Vui lòng bấm “Đặt hàng” lại — hệ thống không tạo trùng đơn — hoặc gọi hotline {phone}.",
+      "Mạng chậm hoặc mất kết nối nên chưa nhận được xác nhận. Vui lòng bấm “{button}” lại — hệ thống không tạo trùng đơn — hoặc gọi hotline {phone}.",
     priceChanged:
-      "Giá sản phẩm vừa được cập nhật, tổng thanh toán mới là {total}. Vui lòng kiểm tra lại đơn rồi bấm “Đặt hàng” để xác nhận.",
+      "Giá sản phẩm vừa được cập nhật, tổng thanh toán mới là {total}. Vui lòng kiểm tra lại đơn rồi bấm “{button}” để xác nhận.",
     unavailable:
       "Sản phẩm sau vừa ngừng bán nên đã được bỏ khỏi giỏ: {items}. Vui lòng kiểm tra lại đơn trước khi đặt.",
     track: "Tra cứu đơn hàng",
@@ -52,10 +83,22 @@ const MESSAGES = {
     orTransfer: "Hoặc chọn chuyển khoản trước để được miễn phí vận chuyển ngay.",
   },
   en: {
+    placeOrderPaid: "I've paid",
+    paidHint: "Press this once your bank transfer has gone through.",
+    transferLoading: "Creating QR code…",
+    transferError: "Couldn't create the QR code.",
+    retry: "Try again",
+    transferNotReady: "The QR code isn't ready yet — please wait a moment and try again.",
+    refRenewed:
+      "Your payment code was refreshed — please scan the new QR. If you already paid with the old code, call {phone} and we'll sort it out.",
+    thanksPaid:
+      "Thank you! We've received your transfer confirmation and will verify it and call you shortly.",
+    reviewQr: "Haven't paid yet? Show the QR code again",
+    checking: "Verifying",
     network:
-      "Your connection is slow or offline, so we couldn't confirm your order. Please press “Place order” again — you won't be charged twice — or call {phone}.",
+      "Your connection is slow or offline, so we couldn't confirm your order. Please press “{button}” again — you won't be charged twice — or call {phone}.",
     priceChanged:
-      "Prices were just updated; your new total is {total}. Please review your order and press “Place order” to confirm.",
+      "Prices were just updated; your new total is {total}. Please review your order and press “{button}” to confirm.",
     unavailable:
       "These items are no longer available and were removed from your cart: {items}. Please review your order.",
     track: "Track this order",
@@ -85,6 +128,40 @@ export default function CheckoutForm({ labels }) {
   // Giữ ĐỒNG BỘ với shippingFeeFor ở be/src/services/payment.service.js
   const shipping = paymentMethod === PAY_BANK ? 0 : codShipping;
   const total = subtotal + shipping;
+
+  // Chuyển khoản: chọn là có QR NGAY (mã đơn do server cấp trước — GET /orders/bank-transfer). QR dựng tại chỗ
+  // từ tổng tiền đang thấy → khách đổi số lượng là số tiền trên QR đổi theo.
+  const [transfer, setTransfer] = useState({ status: "idle", data: null }); // idle | loading | ready | error
+  const loadTransfer = async ({ fresh = false } = {}) => {
+    const stored = !fresh && readStoredTransfer();
+    if (stored) return setTransfer({ status: "ready", data: stored });
+    setTransfer({ status: "loading", data: null });
+    try {
+      const res = await api("/orders/bank-transfer", { retry: false });
+      storeTransfer(res.data);
+      setTransfer({ status: "ready", data: res.data });
+    } catch {
+      setTransfer({ status: "error", data: null });
+    }
+  };
+  const selectPayment = (method) => {
+    setPaymentMethod(method);
+    if (method === PAY_BANK && transfer.status !== "ready" && transfer.status !== "loading")
+      loadTransfer();
+  };
+  const transferPayment = useMemo(() => {
+    const t = transfer.data;
+    if (!t) return null;
+    return {
+      bankName: t.bankName,
+      accountNo: t.accountNo,
+      accountName: t.accountName,
+      amount: total,
+      content: t.code,
+      qr: vietQrPayload({ bin: t.bin, accountNo: t.accountNo, amount: total, content: t.code }),
+    };
+  }, [transfer.data, total]);
+
   const [values, setValues] = useState(initial);
   // ô "Tôi đồng ý … Chính sách bảo mật / đổi trả" — KHÔNG tick sẵn (luật yêu cầu khách chủ động đồng ý)
   const [agree, setAgree] = useState(false);
@@ -113,6 +190,8 @@ export default function CheckoutForm({ labels }) {
   const [accepted, setAccepted] = useState(null); // { sig, total } — tổng mới khách đã được báo
   const router = useRouter();
   const msg = MESSAGES[lang] ?? MESSAGES.vi;
+  // chọn chuyển khoản → nút cuối đổi thành "Xác nhận đã thanh toán" (khách quét QR, chuyển xong mới bấm)
+  const buttonLabel = paymentMethod === PAY_BANK ? msg.placeOrderPaid : labels.placeOrder;
   // false khi render ở server / lần vẽ đầu, true sau khi trình duyệt nhận trang (giỏ hàng đã đọc được)
   const hydrated = useSyncExternalStore(
     noopSubscribe,
@@ -167,10 +246,19 @@ export default function CheckoutForm({ labels }) {
     setErrors(next);
     if (Object.keys(next).length) return focusField(Object.keys(next)[0]);
 
+    // chuyển khoản mà chưa có mã QR (đang tạo / lỗi mạng) → chưa gửi được
+    const paymentRef = paymentMethod === PAY_BANK ? transfer.data?.paymentRef : undefined;
+    if (paymentMethod === PAY_BANK && !paymentRef) {
+      setStatus("error");
+      setFormError(msg.transferNotReady);
+      if (transfer.status === "error") loadTransfer();
+      return;
+    }
+
     const items = lines.map(({ slug, optionId, qty }) => ({ slug, optionId, qty }));
     // Mã chống trùng đơn: giữ nguyên khi khách bấm lại sau lỗi mạng (backend trả đơn đã tạo, không tạo đơn 2),
-    // đổi mã khi giỏ hàng hoặc hình thức thanh toán đổi (là đơn khác)
-    const sig = JSON.stringify({ items, paymentMethod });
+    // đổi mã khi giỏ hàng, hình thức thanh toán hoặc mã chuyển khoản đổi (là đơn khác)
+    const sig = JSON.stringify({ items, paymentMethod, paymentRef });
     if (attempt.current?.sig !== sig) attempt.current = { sig, key: newKey() };
     // Khách đã được báo giá mới (lỗi PRICE_CHANGED) và bấm đặt lại → đồng ý với tổng mới đó
     const expectedTotal = accepted?.sig === sig ? accepted.total : total;
@@ -186,6 +274,7 @@ export default function CheckoutForm({ labels }) {
           customer: { ...values, name: cleanName(values.name), phone: values.phone.trim() },
           items,
           paymentMethod,
+          ...(paymentRef && { paymentRef }),
           lang,
           consent: consentPayload(),
           idempotencyKey: attempt.current.key,
@@ -202,6 +291,9 @@ export default function CheckoutForm({ labels }) {
       try {
         sessionStorage.setItem(LAST_ORDER, JSON.stringify({ ...placed, at: Date.now() }));
       } catch {}
+      // mã chuyển khoản đã thuộc về đơn này → đơn sau lấy mã mới
+      storeTransfer(null);
+      setTransfer({ status: "idle", data: null });
       clear();
       setAgree(false); // đơn sau khách tick lại (mỗi lần gửi thông tin = 1 lần đồng ý)
     } catch (err) {
@@ -234,20 +326,32 @@ export default function CheckoutForm({ labels }) {
         // Giá vừa đổi → không tự đặt với số tiền khác: báo tổng mới, khách bấm lại = đồng ý
         setAccepted({ sig, total: err.details.total });
         router.refresh();
-        setFormError(msg.priceChanged.replace("{total}", formatPrice(err.details.total, lang)));
+        setFormError(
+          msg.priceChanged
+            .replace("{total}", formatPrice(err.details.total, lang))
+            .replace("{button}", buttonLabel),
+        );
       } else if (err.code === "PAYMENT_METHOD_UNAVAILABLE") {
         setPaymentMethod(PAY_COD);
         setFormError(msg.payUnavailable.replace("{phone}", siteConfig.phone));
+      } else if (err.code === "PAYMENT_REF_INVALID" || err.code === "PAYMENT_REF_USED") {
+        // mã chuyển khoản hỏng / đã thuộc đơn khác → cấp mã mới, khách quét lại QR
+        storeTransfer(null);
+        loadTransfer({ fresh: true });
+        setFormError(msg.refRenewed.replace("{phone}", siteConfig.phone));
       } else if (err.status === 0)
         // mất mạng / quá lâu: đơn CÓ THỂ đã lưu → bấm lại an toàn nhờ mã chống trùng
-        setFormError(msg.network.replace("{phone}", siteConfig.phone));
+        setFormError(
+          msg.network.replace("{phone}", siteConfig.phone).replace("{button}", buttonLabel),
+        );
       else setFormError(err.status === 429 ? labels.rateLimited : labels.error);
     }
   };
 
   if (order) {
-    // đơn chuyển khoản chưa nhận tiền → hiện QR + thông tin tài khoản ngay dưới lời cảm ơn
+    // đơn chuyển khoản chưa nhận tiền → còn giữ thông tin chuyển khoản (thu gọn nếu khách đã báo chuyển xong)
     const transfer = order.payment && order.paymentStatus !== "paid";
+    const claimed = transfer && order.paymentClaimed;
     return (
       <div
         ref={successRef}
@@ -271,13 +375,31 @@ export default function CheckoutForm({ labels }) {
             transfer ? "max-w-xl text-balance" : "max-w-lg",
           )}
         >
-          {transfer ? labels.thanksTextBank : labels.thanksText}
+          {claimed ? msg.thanksPaid : transfer ? labels.thanksTextBank : labels.thanksText}
         </p>
         <p className="bg-sage-50 mt-6 inline-block rounded-full px-5 py-2 text-sm">
           {labels.orderId}: <strong className="text-forest">{order.orderId}</strong> -{" "}
           {formatPrice(order.total, lang)}
         </p>
-        {transfer && <BankTransferPanel payment={order.payment} lang={lang} className="mt-8" />}
+        {/* khách đã báo chuyển khoản → QR thu gọn (phòng khi bấm nhầm trước khi chuyển xong) */}
+        {claimed ? (
+          <details className="group mt-6">
+            <summary className="text-sage-700 hover:text-forest inline-flex cursor-pointer list-none items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline">
+              {msg.reviewQr}
+              <span className="transition-transform group-open:rotate-90" aria-hidden="true">
+                ›
+              </span>
+            </summary>
+            <BankTransferPanel
+              payment={order.payment}
+              lang={lang}
+              badge={msg.checking}
+              className="mt-4"
+            />
+          </details>
+        ) : (
+          transfer && <BankTransferPanel payment={order.payment} lang={lang} className="mt-8" />
+        )}
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Button href={href(lang, "/san-pham")} arrow>
             {labels.continue}
@@ -426,7 +548,7 @@ export default function CheckoutForm({ labels }) {
                     name="paymentMethod"
                     value={value}
                     checked={active}
-                    onChange={() => setPaymentMethod(value)}
+                    onChange={() => selectPayment(value)}
                     className="sr-only"
                   />
                   <span
@@ -460,6 +582,30 @@ export default function CheckoutForm({ labels }) {
               );
             })}
           </div>
+
+          {/* Chọn chuyển khoản → QR hiện NGAY tại đây (nội dung = mã đơn cấp trước, số tiền = tổng đang thấy) */}
+          {paymentMethod === PAY_BANK && (
+            <div className="mt-5" aria-live="polite">
+              {transfer.status === "ready" && transferPayment ? (
+                <BankTransferPanel payment={transferPayment} lang={lang} variant="inline" />
+              ) : transfer.status === "error" ? (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <span>{msg.transferError}</span>
+                  <button
+                    type="button"
+                    onClick={() => loadTransfer()}
+                    className="rounded-full border border-red-300 bg-white px-3 py-1 text-xs font-semibold transition-colors hover:bg-red-100"
+                  >
+                    {msg.retry}
+                  </button>
+                </div>
+              ) : (
+                <div className="border-sage-200 bg-sage-50/50 text-ink-muted flex h-40 animate-pulse items-center justify-center rounded-3xl border text-sm">
+                  {msg.transferLoading}
+                </div>
+              )}
+            </div>
+          )}
         </fieldset>
       </div>
 
@@ -558,7 +704,7 @@ export default function CheckoutForm({ labels }) {
                 )}{" "}
                 <button
                   type="button"
-                  onClick={() => setPaymentMethod(PAY_BANK)}
+                  onClick={() => selectPayment(PAY_BANK)}
                   className="text-forest font-semibold underline underline-offset-2"
                 >
                   {msg.orTransfer}
@@ -603,9 +749,17 @@ export default function CheckoutForm({ labels }) {
             className="mt-5 w-full"
             disabled={status === "sending"}
           >
-            {status === "sending" ? labels.sending : labels.placeOrder}
+            {status === "sending" ? labels.sending : buttonLabel}
           </Button>
-          <p className="text-ink-muted mt-3 text-center text-xs">{labels.secure}</p>
+          {/* chuyển khoản: nhắc rõ bấm SAU khi chuyển xong (thay dòng "thông tin được bảo mật") */}
+          <p
+            className={cn(
+              "mt-3 text-center text-xs",
+              paymentMethod === PAY_BANK ? "text-sage-800 font-medium" : "text-ink-muted",
+            )}
+          >
+            {paymentMethod === PAY_BANK ? msg.paidHint : labels.secure}
+          </p>
         </div>
       </aside>
     </form>

@@ -394,7 +394,11 @@ function OrderResult({ order, lang, labels }) {
                       : "border-amber-200 bg-amber-50 text-amber-800",
                   )}
                 >
-                  {order.paymentStatus === "paid" ? labels.paid : labels.awaitingPayment}
+                  {order.paymentStatus === "paid"
+                    ? labels.paid
+                    : order.paymentClaimed
+                      ? labels.verifyingPayment
+                      : labels.awaitingPayment}
                 </span>
               )}
             </dd>
@@ -402,13 +406,30 @@ function OrderResult({ order, lang, labels }) {
         )}
       </dl>
       {/* đơn chuyển khoản chưa nhận tiền → hiện lại QR (backend chỉ gửi khi còn phải thanh toán) */}
-      {order.payment && (
-        <BankTransferPanel
-          payment={order.payment}
-          lang={lang}
-          className="bg-cream/50 mt-8 shadow-none"
-        />
-      )}
+      {/* khách đã bấm "Xác nhận đã thanh toán" → shop đang kiểm tra: QR thu gọn (phòng khi chưa chuyển được) */}
+      {order.payment &&
+        (order.paymentClaimed ? (
+          <details className="group mt-6">
+            <summary className="text-sage-700 hover:text-forest inline-flex cursor-pointer list-none items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline">
+              {labels.reviewQr}
+              <span className="transition-transform group-open:rotate-90" aria-hidden="true">
+                ›
+              </span>
+            </summary>
+            <BankTransferPanel
+              payment={order.payment}
+              lang={lang}
+              badge={labels.verifyingPayment}
+              className="bg-cream/50 mt-4 shadow-none"
+            />
+          </details>
+        ) : (
+          <BankTransferPanel
+            payment={order.payment}
+            lang={lang}
+            className="bg-cream/50 mt-8 shadow-none"
+          />
+        ))}
     </div>
   );
 }

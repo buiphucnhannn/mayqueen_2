@@ -29,7 +29,16 @@ const trackLimiter = limiter({
   message: "Tra cứu sai quá nhiều lần, vui lòng thử lại sau 15 phút.",
 });
 
+// Cấp trước mã đơn cho QR chuyển khoản: 30 lần / 15 phút / IP (khách đổi qua lại COD ↔ chuyển khoản vài lần là đủ)
+const transferLimiter = limiter({
+  windowMs: 15 * 60_000,
+  limit: 30,
+  message: "Bạn thao tác quá nhanh, vui lòng thử lại sau ít phút hoặc gọi hotline.",
+});
+
 // Public: đặt hàng + khách tra cứu đơn (mã đơn + SĐT)
+// (đặt TRƯỚC "/:id" để "bank-transfer" không bị hiểu là id đơn)
+router.get("/bank-transfer", transferLimiter, orderController.reserveTransfer);
 router.post("/", orderLimiter, validate({ body: createOrderSchema }), orderController.create);
 router.get(
   "/track/:code",

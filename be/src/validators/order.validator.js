@@ -31,6 +31,8 @@ export const createOrderSchema = z.object({
     .max(30),
   // hình thức thanh toán khách chọn (phí ship tính lại ở server theo hình thức này)
   paymentMethod: z.enum(PAYMENT_METHODS).optional().default("cod"),
+  // chuyển khoản: mã đơn server đã cấp trước (GET /orders/bank-transfer) — chính là nội dung trên mã QR khách vừa quét
+  paymentRef: z.string().trim().max(80).optional(),
   lang: z.enum(["vi", "en"]).optional().default("vi"),
   consent,
   website: z.string().max(500).optional().default(""), // ô bẫy bot (người dùng không thấy)

@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { env } from "../config/env.js";
 
 /**
@@ -6,10 +7,37 @@ import { env } from "../config/env.js";
  * VietQR = chuẩn QR thanh toán EMVCo của NAPAS. Mã "động" chứa sẵn ngân hàng + số tài khoản + SỐ TIỀN + NỘI DUNG
  * → khách quét bằng bất kỳ app ngân hàng nào là mọi thông tin tự điền, chỉ việc xác nhận. Nội dung chuyển khoản
  * = MÃ ĐƠN (VD MQ7K3P9X) → admin đối chiếu sao kê với đúng đơn.
- * Chuỗi QR được dựng tại đây (không gọi dịch vụ ngoài), frontend chỉ vẽ chuỗi thành ảnh QR.
+ *
+ * Luồng chuyển khoản: khách chọn "Chuyển khoản" → server CẤP TRƯỚC mã đơn (kèm chữ ký paymentRef) → QR hiện ngay ở
+ * trang thanh toán với nội dung = mã đó → khách chuyển tiền rồi bấm "Xác nhận đã thanh toán" → đơn được tạo với
+ * ĐÚNG mã đó (chữ ký chứng minh mã do server cấp, không tự bịa / chiếm mã được).
  */
 
 export const PAYMENT = Object.freeze({ COD: "cod", BANK: "bank_transfer" });
+
+// khóa ký riêng cho paymentRef (dẫn xuất từ secret JWT, không dùng trực tiếp secret đăng nhập)
+const refKey = createHmac("sha256", env.jwt.refreshSecret).update("mq-payment-ref-v1").digest();
+const refSig = (code) => createHmac("sha256", refKey).update(code).digest("base64url").slice(0, 32);
+
+/** paymentRef = "<mã đơn>.<chữ ký>" — trình duyệt giữ lại, gửi kèm khi bấm "Xác nhận đã thanh toán" */
+export const signPaymentRef = (code) => `${code}.${refSig(code)}`;
+
+/** Kiểm tra paymentRef → mã đơn hợp lệ, hoặc null (giả mạo / sai định dạng) */
+export function verifyPaymentRef(ref) {
+  const m = /^(MQ[0-9A-Z]{6})\.([A-Za-z0-9_-]{32})$/.exec(String(ref ?? ""));
+  if (!m) return null;
+  const want = Buffer.from(refSig(m[1]));
+  const got = Buffer.from(m[2]);
+  return want.length === got.length && timingSafeEqual(want, got) ? m[1] : null;
+}
+
+/** Thông tin tài khoản nhận tiền (công khai — in trên mã QR) */
+export const bankAccount = () => ({
+  bankName: env.bank.name,
+  bin: env.bank.bin,
+  accountNo: env.bank.accountNo,
+  accountName: env.bank.accountName,
+});
 
 /** Phí ship: chuyển khoản trước → luôn miễn phí; COD → miễn phí khi đủ ngưỡng */
 export function shippingFeeFor(subtotal, paymentMethod) {

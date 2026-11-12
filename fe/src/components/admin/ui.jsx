@@ -946,14 +946,36 @@ export function AdminProviders({ children }) {
 const ToastContext = createContext(() => {});
 export const useToast = () => useContext(ToastContext);
 
-// ---------- Định dạng ----------
-export const dateTime = (iso) =>
-  new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short" }).format(
-    new Date(iso),
-  );
+// ---------- Định dạng ngày giờ (toàn trang quản trị: dd/mm/yyyy, năm đủ 4 số, LUÔN theo giờ Việt Nam) ----------
+const VN_PARTS = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Ho_Chi_Minh", // máy admin đặt múi giờ khác vẫn hiện đúng giờ VN
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+const vnParts = (iso) =>
+  Object.fromEntries(VN_PARTS.formatToParts(new Date(iso)).map(({ type, value }) => [type, value]));
 
-export const dateOnly = (iso) =>
-  new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium" }).format(new Date(iso));
+/** Bảng / danh sách: "05:02 10/11/2026" */
+export const dateTime = (iso) => {
+  const p = vnParts(iso);
+  return `${p.hour}:${p.minute} ${p.day}/${p.month}/${p.year}`;
+};
+
+/** Trong câu ("Đặt lúc …", "Khách đã bấm … lúc …"): "05:02 ngày 10/11/2026" */
+export const dateTimeFull = (iso) => {
+  const p = vnParts(iso);
+  return `${p.hour}:${p.minute} ngày ${p.day}/${p.month}/${p.year}`;
+};
+
+/** Chỉ ngày (ngày đăng bài viết…): "10/11/2026" */
+export const dateOnly = (iso) => {
+  const p = vnParts(iso);
+  return `${p.day}/${p.month}/${p.year}`;
+};
 
 /** "Mayqueen Slim Pro" → "mayqueen-slim-pro" (bỏ dấu tiếng Việt) */
 export function slugify(text = "") {

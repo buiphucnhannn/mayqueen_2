@@ -16,6 +16,12 @@ export const orderController = {
     created(res, await orderService.create({ ...data, suspected: Boolean(website) }));
   },
 
+  /** Khách chọn "Chuyển khoản" → mã đơn cấp trước + tài khoản nhận tiền để dựng QR ngay ở trang thanh toán */
+  async reserveTransfer(_req, res) {
+    res.set("Cache-Control", "no-store"); // mỗi lần lấy là 1 mã mới — không cho trình duyệt / CDN lưu lại
+    ok(res, await orderService.reserveTransfer());
+  },
+
   async track(req, res) {
     ok(res, await orderService.track(req.validated.params.code, normalizePhone(req.query.phone)));
   },

@@ -28,6 +28,7 @@ import {
   SearchBox,
   TableShell,
   dateTime,
+  dateTimeFull,
   td,
   tdc,
   th,
@@ -120,7 +121,7 @@ function LeadDrawer({ lead, onClose, onChange, onDelete }) {
       subtitle={
         <span className="text-ink-muted flex items-center gap-2 text-xs">
           <Badge tone={LEAD_STATUS[lead.status]?.tone}>{LEAD_STATUS[lead.status]?.label}</Badge>
-          Gửi lúc {dateTime(lead.createdAt)}
+          Gửi lúc {dateTimeFull(lead.createdAt)}
         </span>
       }
       footer={

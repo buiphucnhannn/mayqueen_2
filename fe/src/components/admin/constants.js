@@ -15,6 +15,9 @@ export const PAYMENT_METHOD = {
 
 /** Trạng thái nhận tiền của đơn chuyển khoản */
 export const PAYMENT_STATUS = {
+  // khách đã bấm "Xác nhận đã thanh toán" ở trang thanh toán → admin kiểm tra sao kê rồi xác nhận
+  claimed: { label: "Chờ kiểm tra tiền", tone: "amber" },
+  // đơn cũ (trước luồng mới): khách chưa báo chuyển
   unpaid: { label: "Chờ chuyển khoản", tone: "amber" },
   paid: { label: "Đã thanh toán", tone: "green" },
 };
@@ -25,7 +28,7 @@ export const PAYMENT_FILTERS = [
   { value: "", label: "Mọi thanh toán" },
   { value: "cod", label: "COD" },
   { value: "bank_transfer", label: "Chuyển khoản" },
-  { value: "awaiting", label: "Chờ chuyển khoản" },
+  { value: "awaiting", label: "Chờ kiểm tra tiền" },
   { value: "paid", label: "Đã thanh toán" },
 ];
 
