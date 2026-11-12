@@ -1,0 +1,45 @@
+# =============================================================================
+# be/ — Express API
+# =============================================================================
+
+# ----- Dependencies -----
+/node_modules
+
+# ----- Biến môi trường -----
+# Commit .env.example (mẫu), KHÔNG commit .env (chứa MongoDB URI, Cloudinary secret, admin key)
+.env
+.env.*
+!.env.example
+
+# ----- Build output (nếu sau này dùng bundler / TypeScript) -----
+/dist
+/build
+*.tsbuildinfo
+
+# ----- Upload / file tạm (multer dùng bộ nhớ, nhưng phòng khi đổi sang lưu đĩa) -----
+/uploads
+/tmp
+
+# ----- Logs -----
+/logs
+*.log
+npm-debug.log*
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# ----- Test -----
+/coverage
+/.nyc_output
+
+# ----- Bí mật / chứng chỉ -----
+*.pem
+*.key
+service-account*.json
+
+# ----- Misc -----
+.DS_Store
+
+# File xem trước email (npm run mail:test -- --preview)
+mail-preview/

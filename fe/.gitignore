@@ -1,0 +1,39 @@
+# =============================================================================
+# fe/ — Next.js
+# =============================================================================
+
+# ----- Dependencies -----
+/node_modules
+
+# ----- Next.js -----
+/.next/
+# thư mục build phụ (NEXT_DIST_DIR=.next-check / .next-test / .next-dev…) dùng khi kiểm tra song song
+/.next-*/
+/out/
+next-env.d.ts
+*.tsbuildinfo
+
+# ----- Build / deploy -----
+/build
+.vercel
+.netlify
+
+# ----- Biến môi trường -----
+# Commit .env.example (mẫu), KHÔNG commit .env.local / .env.production ...
+.env
+.env.*
+!.env.example
+
+# ----- Test -----
+/coverage
+/test-results
+/playwright-report
+
+# ----- Logs / debug -----
+*.log
+npm-debug.log*
+.pnpm-debug.log*
+
+# ----- Misc -----
+.DS_Store
+*.pem

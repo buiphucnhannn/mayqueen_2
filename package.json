@@ -1,0 +1,13 @@
+{
+  "name": "mayqueen-slim",
+  "private": true,
+  "description": "Mayqueen Slim — fe (Next.js) + be (Express API)",
+  "scripts": {
+    "install:all": "npm --prefix fe install && npm --prefix be install",
+    "dev:fe": "npm --prefix fe run dev",
+    "dev:be": "npm --prefix be run dev",
+    "build:fe": "npm --prefix fe run build",
+    "start:be": "npm --prefix be run start",
+    "lint": "npm --prefix fe run lint && npm --prefix be run lint"
+  }
+}

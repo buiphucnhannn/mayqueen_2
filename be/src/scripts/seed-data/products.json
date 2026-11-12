@@ -1,0 +1,615 @@
+[
+  {
+    "slug": "mayqueen-slim",
+    "category": "slim",
+    "sortOrder": 1,
+    "name": {
+      "vi": "Mayqueen Slim",
+      "en": "Mayqueen Slim"
+    },
+    "badge": {
+      "vi": "Bán chạy",
+      "en": "Bestseller"
+    },
+    "ritual": {
+      "vi": "Thực phẩm bảo vệ sức khỏe",
+      "en": "Health supplement"
+    },
+    "tagline": {
+      "vi": "Hỗ trợ tăng cường chuyển hóa chất béo, hỗ trợ giảm béo",
+      "en": "Supports fat metabolism and weight loss"
+    },
+    "short": {
+      "vi": "Viên uống hỗ trợ tăng cường chuyển hóa chất béo, hỗ trợ giảm béo — với chiết xuất quả bứa, chitosan, trà xanh, cao lá sen và 12 thành phần khác.",
+      "en": "Tablets that support fat metabolism and weight loss — with garcinia extract, chitosan, green tea, lotus leaf and 12 more ingredients."
+    },
+    "description": {
+      "vi": "Mayqueen Slim là thực phẩm bảo vệ sức khỏe giúp hỗ trợ tăng cường chuyển hóa chất béo, hỗ trợ giảm béo. Công thức kết hợp chitosan, chiết xuất quả bứa, chiết xuất trà xanh, cao lá sen, bột dương xỉ cùng glucomannan, L-carnitin, collagen peptit, vitamin C và biotin.",
+      "en": "Mayqueen Slim is a health supplement that supports fat metabolism and weight loss. The formula combines chitosan, garcinia extract, green tea extract, lotus leaf extract and fern powder with glucomannan, L-carnitine, collagen peptide, vitamin C and biotin."
+    },
+    "spec": {
+      "vi": "Dạng viên - 1 lọ 30 viên",
+      "en": "Tablets - 1 bottle of 30"
+    },
+    "benefits": [
+      {
+        "vi": "Hỗ trợ giảm cân và giảm mỡ thừa",
+        "en": "Supports weight and excess-fat loss"
+      },
+      {
+        "vi": "Hạn chế hấp thu chất béo",
+        "en": "Limits fat absorption"
+      },
+      {
+        "vi": "Tăng cường đốt cháy năng lượng",
+        "en": "Boosts energy burning"
+      },
+      {
+        "vi": "Kiểm soát cảm giác thèm ăn",
+        "en": "Helps control cravings"
+      },
+      {
+        "vi": "Hỗ trợ làm đẹp da",
+        "en": "Supports healthy skin"
+      }
+    ],
+    "ingredients": [
+      {
+        "name": {
+          "vi": "Chiết xuất quả bứa",
+          "en": "Garcinia extract"
+        },
+        "note": {
+          "vi": "100 mg",
+          "en": "100 mg"
+        }
+      },
+      {
+        "name": {
+          "vi": "Chitosan",
+          "en": "Chitosan"
+        },
+        "note": {
+          "vi": "100 mg",
+          "en": "100 mg"
+        }
+      },
+      {
+        "name": {
+          "vi": "Chiết xuất trà xanh",
+          "en": "Green tea extract"
+        },
+        "note": {
+          "vi": "100 mg",
+          "en": "100 mg"
+        }
+      },
+      {
+        "name": {
+          "vi": "Cao lá sen",
+          "en": "Lotus leaf extract"
+        },
+        "note": {
+          "vi": "100 mg",
+          "en": "100 mg"
+        }
+      },
+      {
+        "name": {
+          "vi": "Bột dương xỉ",
+          "en": "Fern powder"
+        },
+        "note": {
+          "vi": "100 mg",
+          "en": "100 mg"
+        }
+      },
+      {
+        "name": {
+          "vi": "Cao ngưu tất",
+          "en": "Achyranthes extract"
+        },
+        "note": {
+          "vi": "100 mg",
+          "en": "100 mg"
+        }
+      },
+      {
+        "name": {
+          "vi": "Glucomannan",
+          "en": "Glucomannan"
+        },
+        "note": {
+          "vi": "70 mg",
+          "en": "70 mg"
+        }
+      },
+      {
+        "name": {
+          "vi": "L-Carnitin fumarat",
+          "en": "L-Carnitine fumarate"
+        },
+        "note": {
+          "vi": "50 mg",
+          "en": "50 mg"
+        }
+      },
+      {
+        "name": {
+          "vi": "L-Glutamin",
+          "en": "L-Glutamine"
+        },
+        "note": {
+          "vi": "50 mg",
+          "en": "50 mg"
+        }
+      },
+      {
+        "name": {
+          "vi": "Cao mướp đắng",
+          "en": "Bitter melon extract"
+        },
+        "note": {
+          "vi": "50 mg",
+          "en": "50 mg"
+        }
+      },
+      {
+        "name": {
+          "vi": "Chiết xuất men gạo đỏ",
+          "en": "Red yeast rice extract"
+        },
+        "note": {
+          "vi": "50 mg",
+          "en": "50 mg"
+        }
+      },
+      {
+        "name": {
+          "vi": "Collagen peptit",
+          "en": "Collagen peptide"
+        },
+        "note": {
+          "vi": "50 mg",
+          "en": "50 mg"
+        }
+      },
+      {
+        "name": {
+          "vi": "Cao hồ tiêu đen",
+          "en": "Black pepper extract"
+        },
+        "note": {
+          "vi": "50 mg",
+          "en": "50 mg"
+        }
+      },
+      {
+        "name": {
+          "vi": "Cao linh chi",
+          "en": "Reishi extract"
+        },
+        "note": {
+          "vi": "50 mg",
+          "en": "50 mg"
+        }
+      },
+      {
+        "name": {
+          "vi": "Vitamin C (natri ascorbat)",
+          "en": "Vitamin C (sodium ascorbate)"
+        },
+        "note": {
+          "vi": "50 mg",
+          "en": "50 mg"
+        }
+      },
+      {
+        "name": {
+          "vi": "Biotin (Vitamin H)",
+          "en": "Biotin (Vitamin H)"
+        },
+        "note": {
+          "vi": "20 mcg",
+          "en": "20 mcg"
+        }
+      }
+    ],
+    "excipients": {
+      "vi": "Phụ liệu: Lactose, avicel, polyvinylpyrrolidone, chất làm dày – bột talc (533(iii)), chất chống đông vón – magie stearate (533(i)), hydroxypropyl methylcellulose, titan dioxyd vừa đủ 1 viên.",
+      "en": "Excipients: lactose, avicel, polyvinylpyrrolidone, thickener – talc (533(iii)), anti-caking agent – magnesium stearate (533(i)), hydroxypropyl methylcellulose, titanium dioxide q.s. 1 tablet."
+    },
+    "usage": [
+      {
+        "vi": "Uống 2 viên mỗi ngày.",
+        "en": "Take 2 tablets a day."
+      },
+      {
+        "vi": "Uống trước hoặc sau bữa ăn khoảng 15–30 phút.",
+        "en": "Take 15–30 minutes before or after a meal."
+      },
+      {
+        "vi": "Nếu đau dạ dày hoặc huyết áp thì uống sau ăn sáng 30 phút.",
+        "en": "If you have stomach or blood pressure issues, take 30 minutes after breakfast."
+      },
+      {
+        "vi": "Uống nhiều nước (1,5–2 lít/ngày).",
+        "en": "Drink plenty of water (1.5–2 litres a day)."
+      }
+    ],
+    "images": [
+      "/images/products/mayqueen-slim/mayqueen-sage.jpg",
+      "/images/products/mayqueen-slim/mayqueen-fern.jpg",
+      "/images/products/mayqueen-slim/mayqueen-stone.jpg",
+      "/images/products/mayqueen-slim/info-thanh-phan.jpg",
+      "/images/products/mayqueen-slim/info-cong-dung.jpg",
+      "/images/products/mayqueen-slim/info-huong-dan.jpg"
+    ],
+    "options": [
+      {
+        "optionId": "1",
+        "label": {
+          "vi": "1 lọ",
+          "en": "1 bottle"
+        },
+        "note": {
+          "vi": "30 viên",
+          "en": "30 tablets"
+        },
+        "price": 550000,
+        "popular": false
+      },
+      {
+        "optionId": "2",
+        "label": {
+          "vi": "Combo 1 - 2 lọ",
+          "en": "Bundle 1 - 2 bottles"
+        },
+        "note": {
+          "vi": "60 viên",
+          "en": "60 tablets"
+        },
+        "price": 1050000,
+        "compareAt": 1100000,
+        "popular": true
+      }
+    ],
+    "isActive": true
+  },
+  {
+    "slug": "yodetox-extra",
+    "category": "detox",
+    "sortOrder": 2,
+    "name": {
+      "vi": "Yodetox Extra",
+      "en": "Yodetox Extra"
+    },
+    "badge": {
+      "vi": "Mới",
+      "en": "New"
+    },
+    "ritual": {
+      "vi": "Thực phẩm bổ sung",
+      "en": "Dietary supplement"
+    },
+    "tagline": {
+      "vi": "Bổ sung diệp lục tố và vitamin C",
+      "en": "Chlorophyll and vitamin C supplement"
+    },
+    "short": {
+      "vi": "Bột pha uống bổ sung diệp lục tố và vitamin C — vị hương lá, hương cam, ngọt tự nhiên từ lá cỏ ngọt.",
+      "en": "A drink powder with chlorophyll and vitamin C — leaf and orange flavour, naturally sweetened with stevia."
+    },
+    "description": {
+      "vi": "Yodetox Extra là thực phẩm bổ sung dạng bột pha uống. Diệp lục tố hỗ trợ bổ sung chất diệp lục, góp phần duy trì sức khỏe đường tiêu hóa, chống nhiễm trùng, giúp nhanh lành vết thương, giảm viêm nhiễm. Vitamin C chống oxy hóa, hỗ trợ tăng cường sức đề kháng, tổng hợp collagen, kích thích hoạt động hệ thống miễn dịch.",
+      "en": "Yodetox Extra is a powdered drink supplement. Chlorophyll helps maintain digestive health, fights infection, speeds wound healing and reduces inflammation. Vitamin C is an antioxidant that supports resistance and collagen synthesis and stimulates the immune system."
+    },
+    "spec": {
+      "vi": "Dạng bột - 1 hộp × 20 gói × 2 g/gói",
+      "en": "Powder - 1 box × 20 sachets × 2 g"
+    },
+    "benefits": [
+      {
+        "vi": "Giúp cải thiện hệ tiêu hóa, giảm táo bón",
+        "en": "Helps improve digestion and relieve constipation"
+      },
+      {
+        "vi": "Hỗ trợ giảm cảm giác đầy bụng, khó tiêu",
+        "en": "Helps ease bloating and indigestion"
+      },
+      {
+        "vi": "Hỗ trợ quá trình giảm cân, giữ dáng",
+        "en": "Supports weight loss and staying in shape"
+      },
+      {
+        "vi": "Giúp cơ thể nhẹ nhàng, tươi tắn hơn",
+        "en": "Helps you feel lighter and fresher"
+      }
+    ],
+    "ingredients": [
+      {
+        "name": {
+          "vi": "Diệp lục tố (Natri đồng Chlorophyllin 10%)",
+          "en": "Chlorophyll (Sodium copper chlorophyllin 10%)"
+        },
+        "note": {
+          "vi": "100 mg / gói 2 g",
+          "en": "100 mg / 2 g sachet"
+        }
+      },
+      {
+        "name": {
+          "vi": "Vitamin C (Natri ascorbat)",
+          "en": "Vitamin C (Sodium ascorbate)"
+        },
+        "note": {
+          "vi": "60 mg / gói 2 g",
+          "en": "60 mg / 2 g sachet"
+        }
+      },
+      {
+        "name": {
+          "vi": "Maltodextrin",
+          "en": "Maltodextrin"
+        },
+        "note": {
+          "vi": "",
+          "en": ""
+        }
+      },
+      {
+        "name": {
+          "vi": "Lá cỏ ngọt",
+          "en": "Stevia leaf"
+        },
+        "note": {
+          "vi": "Chất tạo ngọt tự nhiên",
+          "en": "Natural sweetener"
+        }
+      },
+      {
+        "name": {
+          "vi": "Hương liệu tổng hợp (hương lá, hương cam)",
+          "en": "Flavourings (leaf, orange)"
+        },
+        "note": {
+          "vi": "",
+          "en": ""
+        }
+      },
+      {
+        "name": {
+          "vi": "Acid citric",
+          "en": "Citric acid"
+        },
+        "note": {
+          "vi": "Chất điều chỉnh độ acid",
+          "en": "Acidity regulator"
+        }
+      },
+      {
+        "name": {
+          "vi": "Isomalt",
+          "en": "Isomalt"
+        },
+        "note": {
+          "vi": "Chất tạo ngọt tự nhiên",
+          "en": "Natural sweetener"
+        }
+      },
+      {
+        "name": {
+          "vi": "Kali sorbat",
+          "en": "Potassium sorbate"
+        },
+        "note": {
+          "vi": "Chất bảo quản",
+          "en": "Preservative"
+        }
+      },
+      {
+        "name": {
+          "vi": "Polyvinylpyrrolidone",
+          "en": "Polyvinylpyrrolidone"
+        },
+        "note": {
+          "vi": "Chất ổn định",
+          "en": "Stabiliser"
+        }
+      }
+    ],
+    "usage": [
+      {
+        "vi": "Pha 1 gói với 60–120 ml nước ấm.",
+        "en": "Mix 1 sachet with 60–120 ml warm water."
+      },
+      {
+        "vi": "Khuấy đều cho bột hòa tan rồi uống trực tiếp.",
+        "en": "Stir until dissolved, then drink."
+      },
+      {
+        "vi": "Liều dùng: 2 gói/lần, ngày 2–3 lần.",
+        "en": "Dosage: 2 sachets per serving, 2–3 times a day."
+      },
+      {
+        "vi": "Uống nước và kết hợp chế độ ăn uống, duy trì thói quen sinh hoạt lành mạnh.",
+        "en": "Drink water, eat well and keep healthy daily habits."
+      }
+    ],
+    "images": [
+      "/images/products/yodetox/yodetox-sage.jpg",
+      "/images/products/yodetox/yodetox-fern.jpg",
+      "/images/products/yodetox/info-thanh-phan.jpg",
+      "/images/products/yodetox/info-cong-dung.jpg",
+      "/images/products/yodetox/info-huong-dan.jpg"
+    ],
+    "options": [
+      {
+        "optionId": "1",
+        "label": {
+          "vi": "1 hộp",
+          "en": "1 box"
+        },
+        "note": {
+          "vi": "20 gói × 2 g",
+          "en": "20 sachets × 2 g"
+        },
+        "price": 260000,
+        "popular": false
+      }
+    ],
+    "isActive": true
+  },
+  {
+    "slug": "combo-sang-dot-toi-loc",
+    "category": "combo",
+    "sortOrder": 3,
+    "name": {
+      "vi": "Combo Mayqueen Slim + Yodetox Extra",
+      "en": "Mayqueen Slim + Yodetox Extra Bundle"
+    },
+    "badge": {
+      "vi": "Tiết kiệm nhất",
+      "en": "Best value"
+    },
+    "ritual": {
+      "vi": "Combo liệu trình",
+      "en": "Bundle"
+    },
+    "tagline": {
+      "vi": "Kết hợp Mayqueen Slim và Yodetox Extra",
+      "en": "Mayqueen Slim with Yodetox Extra"
+    },
+    "short": {
+      "vi": "Bộ đôi Mayqueen Slim hỗ trợ chuyển hóa chất béo và Yodetox Extra bổ sung diệp lục tố, vitamin C — giá combo tiết kiệm đến 460.000₫.",
+      "en": "Mayqueen Slim for fat metabolism plus Yodetox Extra for chlorophyll and vitamin C — bundle prices save up to 460,000₫."
+    },
+    "description": {
+      "vi": "Combo kết hợp hai sản phẩm của B.O.T Việt Nam: Mayqueen Slim (thực phẩm bảo vệ sức khỏe, hỗ trợ tăng cường chuyển hóa chất béo, hỗ trợ giảm béo) và Yodetox Extra (thực phẩm bổ sung diệp lục tố và vitamin C, hỗ trợ tiêu hóa, giúp cơ thể nhẹ nhàng).",
+      "en": "A bundle of two B.O.T Vietnam products: Mayqueen Slim (health supplement supporting fat metabolism and weight loss) and Yodetox Extra (chlorophyll and vitamin C supplement that supports digestion and lightness)."
+    },
+    "spec": {
+      "vi": "Mayqueen Slim (lọ 30 viên) + Yodetox Extra (hộp 20 gói)",
+      "en": "Mayqueen Slim (30 tablets) + Yodetox Extra (20 sachets)"
+    },
+    "benefits": [
+      {
+        "vi": "Hỗ trợ giảm cân và giảm mỡ thừa",
+        "en": "Supports weight and excess-fat loss"
+      },
+      {
+        "vi": "Hỗ trợ cải thiện hệ tiêu hóa",
+        "en": "Supports digestion"
+      },
+      {
+        "vi": "Bổ sung diệp lục tố và vitamin C",
+        "en": "Adds chlorophyll and vitamin C"
+      },
+      {
+        "vi": "Giá combo tiết kiệm hơn mua lẻ",
+        "en": "Cheaper than buying separately"
+      }
+    ],
+    "ingredients": [
+      {
+        "name": {
+          "vi": "Mayqueen Slim",
+          "en": "Mayqueen Slim"
+        },
+        "note": {
+          "vi": "Quả bứa, chitosan, trà xanh, cao lá sen, bột dương xỉ… (16 thành phần)",
+          "en": "Garcinia, chitosan, green tea, lotus leaf, fern powder… (16 ingredients)"
+        }
+      },
+      {
+        "name": {
+          "vi": "Yodetox Extra",
+          "en": "Yodetox Extra"
+        },
+        "note": {
+          "vi": "Diệp lục tố 100 mg, vitamin C 60 mg / gói… (9 thành phần)",
+          "en": "Chlorophyll 100 mg, vitamin C 60 mg / sachet… (9 ingredients)"
+        }
+      }
+    ],
+    "usage": [
+      {
+        "vi": "Mayqueen Slim: uống 2 viên mỗi ngày, trước hoặc sau bữa ăn khoảng 15–30 phút.",
+        "en": "Mayqueen Slim: 2 tablets a day, 15–30 minutes before or after a meal."
+      },
+      {
+        "vi": "Yodetox Extra: pha 1 gói với 60–120 ml nước ấm, liều dùng 2 gói/lần, ngày 2–3 lần.",
+        "en": "Yodetox Extra: mix 1 sachet with 60–120 ml warm water; 2 sachets per serving, 2–3 times a day."
+      },
+      {
+        "vi": "Uống nhiều nước (1,5–2 lít/ngày).",
+        "en": "Drink plenty of water (1.5–2 litres a day)."
+      }
+    ],
+    "images": [
+      "/images/products/combo/combo-sage.jpg",
+      "/images/products/combo/combo-fern.jpg",
+      "/images/products/mayqueen-slim/mayqueen-sage.jpg",
+      "/images/products/yodetox/yodetox-sage.jpg"
+    ],
+    "options": [
+      {
+        "optionId": "2",
+        "label": {
+          "vi": "Combo 2",
+          "en": "Bundle 2"
+        },
+        "note": {
+          "vi": "1 Mayqueen Slim + 1 Yodetox Extra",
+          "en": "1 Mayqueen Slim + 1 Yodetox Extra"
+        },
+        "price": 790000,
+        "compareAt": 810000,
+        "popular": false
+      },
+      {
+        "optionId": "3",
+        "label": {
+          "vi": "Combo 3",
+          "en": "Bundle 3"
+        },
+        "note": {
+          "vi": "2 Mayqueen Slim + 2 Yodetox Extra",
+          "en": "2 Mayqueen Slim + 2 Yodetox Extra"
+        },
+        "price": 1510000,
+        "compareAt": 1620000,
+        "popular": true
+      },
+      {
+        "optionId": "4",
+        "label": {
+          "vi": "Combo 4",
+          "en": "Bundle 4"
+        },
+        "note": {
+          "vi": "3 Mayqueen Slim + 2 Yodetox Extra",
+          "en": "3 Mayqueen Slim + 2 Yodetox Extra"
+        },
+        "price": 1950000,
+        "compareAt": 2170000,
+        "popular": false
+      },
+      {
+        "optionId": "5",
+        "label": {
+          "vi": "Combo 5",
+          "en": "Bundle 5"
+        },
+        "note": {
+          "vi": "4 Mayqueen Slim + 3 Yodetox Extra",
+          "en": "4 Mayqueen Slim + 3 Yodetox Extra"
+        },
+        "price": 2520000,
+        "compareAt": 2980000,
+        "popular": false
+      }
+    ],
+    "isActive": true
+  }
+]

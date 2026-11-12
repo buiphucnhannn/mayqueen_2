@@ -1,0 +1,38 @@
+[
+  {
+    "type": "product",
+    "slug": "slim",
+    "sortOrder": 1,
+    "name": { "vi": "Hỗ trợ giảm béo", "en": "Weight support" }
+  },
+  {
+    "type": "product",
+    "slug": "detox",
+    "sortOrder": 2,
+    "name": { "vi": "Thực phẩm bổ sung", "en": "Supplements" }
+  },
+  {
+    "type": "product",
+    "slug": "combo",
+    "sortOrder": 3,
+    "name": { "vi": "Combo", "en": "Bundles" }
+  },
+  {
+    "type": "article",
+    "slug": "detox",
+    "sortOrder": 1,
+    "name": { "vi": "Công thức detox", "en": "Detox recipes" }
+  },
+  {
+    "type": "article",
+    "slug": "eat-clean",
+    "sortOrder": 2,
+    "name": { "vi": "Thực đơn Eat Clean", "en": "Eat Clean menus" }
+  },
+  {
+    "type": "article",
+    "slug": "giu-dang",
+    "sortOrder": 3,
+    "name": { "vi": "Bí quyết giữ dáng", "en": "Body tips" }
+  }
+]

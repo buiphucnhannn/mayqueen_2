@@ -1,0 +1,712 @@
+@import "tailwindcss";
+@import "./fonts.css";
+
+/* ---------------------------------------------------------------------------
+ * Design tokens — Mayqueen Slim v2 (phong cách web mẫu Kobler: kể chuyện, sang trọng).
+ * Giữ nhận diện: xanh thảo mộc / sage + nền trắng ngọc trai, be kem; khối nền tối = xanh rêu đậm.
+ * Tiêu đề: serif Cormorant Garamond IN HOA, dòng 2 màu nhấn · Nội dung: Be Vietnam Pro.
+ * ------------------------------------------------------------------------- */
+@theme inline {
+  --font-sans: var(--font-be-vietnam), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-cormorant), Georgia, "Times New Roman", serif;
+}
+
+@theme {
+  /* nền */
+  --color-pearl: #fffdf8;
+  --color-cream: #f8f5ec;
+  --color-sand: #efe9da;
+  /* be ấm kiểu Kobler cho khối sáng */
+  --color-linen: #f4f1ea;
+  --color-stone: #e6dfd1;
+
+  /* xanh thảo mộc */
+  --color-sage-50: #f4f7ee;
+  --color-sage-100: #e7eedb;
+  --color-sage-200: #d1dfbb;
+  --color-sage-300: #b3ca93;
+  --color-sage-400: #93b06c;
+  --color-sage-500: #77954f;
+  --color-sage-600: #5f7d41;
+  --color-sage-700: #4a6234;
+  --color-sage-800: #3c4f2c;
+  --color-sage-900: #2c3a21;
+
+  /* xanh lá tươi trên vỏ hộp — điểm nhấn "vibrant" */
+  --color-leaf: #8dc63f;
+  --color-leaf-soft: #dcefc0;
+
+  /* xanh rừng đậm: chữ logo, nền tối */
+  --color-forest: #1e3a28;
+  --color-forest-deep: #142a1c;
+  /* nền tối sâu nhất (khối sang, footer) */
+  --color-moss: #0f1f15;
+
+  /* mực */
+  --color-ink: #1c2a21;
+  --color-ink-soft: #4b5a50;
+  --color-ink-muted: #7b877e;
+
+  --shadow-soft: 0 24px 60px -28px rgb(30 58 40 / 0.28);
+  --shadow-card: 0 12px 34px -18px rgb(30 58 40 / 0.22);
+
+  --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-expo: cubic-bezier(0.76, 0, 0.24, 1);
+
+  --animate-marquee: marquee 40s linear infinite;
+  --animate-marquee-reverse: marquee 46s linear infinite reverse;
+  /* dải trôi dọc (cột đánh giá) */
+  --animate-marquee-up: marquee-y 48s linear infinite;
+  --animate-marquee-down: marquee-y 54s linear infinite reverse;
+  --animate-float: float 5s ease-in-out infinite;
+  --animate-float-slow: float 7s ease-in-out infinite;
+  --animate-spin-slow: spin 24s linear infinite;
+  --animate-kenburns: kenburns 8s ease-out forwards;
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  @keyframes marquee-y {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(-50%);
+    }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0) rotate(0deg);
+    }
+    50% {
+      transform: translateY(-12px) rotate(2deg);
+    }
+  }
+  @keyframes kenburns {
+    from {
+      transform: scale(1.05);
+    }
+    to {
+      transform: scale(1);
+    }
+  }
+}
+
+/* --chrome = chiều cao header (64px | 96px). Header cố định trong suốt đè lên hero. */
+html {
+  -webkit-text-size-adjust: 100%;
+  /* cùng màu body → lúc chuyển trang / cuộn quá đà không lộ nền trắng */
+  background-color: var(--color-pearl);
+  --chrome: 64px;
+  /* "Một màn hình" có giới hạn: thu nhỏ trình duyệt (zoom 50–75%) không làm section phình khổng lồ */
+  --screen: min(100svh, 1000px);
+}
+@media (min-width: 1024px) {
+  html {
+    --chrome: 96px;
+  }
+}
+
+/* Chặn tràn ngang; dùng clip (không phải hidden) để position: sticky vẫn chạy */
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+body {
+  @apply bg-pearl text-ink font-sans antialiased;
+  /* Chữ số THẲNG HÀNG cho toàn site: Cormorant mặc định dùng số kiểu cổ (5, 9 thò xuống dưới dòng, 1 giống chữ I)
+     → giá tiền / số liệu trông lệch. Dùng font-feature-settings (kế thừa, không bị các class tabular-nums… ghi đè). */
+  font-feature-settings: "lnum" 1;
+  /* chuỗi dài không khoảng trắng (tên / link do người dùng nhập) tự xuống dòng thay vì tràn khung;
+     chỉ tác dụng khi chữ không vừa → không đổi bố cục bình thường */
+  overflow-wrap: break-word;
+}
+
+::selection {
+  background: var(--color-leaf-soft);
+  color: var(--color-forest);
+}
+
+img {
+  -webkit-user-drag: none;
+}
+
+/* Lenis */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* ---------- Typography helpers ---------- */
+@utility eyebrow {
+  @apply text-sage-600 text-[11px] font-semibold tracking-[0.28em] uppercase;
+}
+/* Tiêu đề khối kiểu Kobler: serif IN HOA, dòng thứ 2 bọc <span class="accent"> */
+@utility h-lux {
+  @apply text-forest font-serif leading-[1.12] font-medium tracking-[0.01em] text-balance uppercase;
+  & .accent {
+    @apply text-sage-500 block;
+  }
+}
+/* Nút mũi tên tròn kiểu Kobler: chữ in hoa + vòng tròn viền có mũi tên */
+@utility link-circle {
+  @apply inline-flex items-center gap-3 text-[12.5px] font-semibold tracking-[0.12em] uppercase transition-colors;
+}
+@utility h-display {
+  @apply text-forest font-serif leading-[1.05] font-normal tracking-[-0.02em];
+}
+/* Popup tư vấn — tablet / điện thoại thấp (< 1024px): thu gọn theo CHIỀU CAO từng nấc, vừa đủ:
+   short ≤ 760px (bớt khoảng trắng), tiny < 700px (thu nhẹ ô nhập / nút), micro ≤ 620px (ẩn logo). */
+@custom-variant short {
+  @media (max-height: 760px) and (max-width: 1023px) {
+    @slot;
+  }
+}
+@custom-variant tiny {
+  @media (max-height: 699px) and (max-width: 1023px) {
+    @slot;
+  }
+}
+@custom-variant micro {
+  @media (max-height: 620px) and (max-width: 1023px) {
+    @slot;
+  }
+}
+/* Máy tính (≥ 1024px): popup luôn theo bản thiết kế lớn, JS tự co đồng đều (zoom) cho vừa màn hình */
+@custom-variant tall {
+  @media (min-width: 1024px) {
+    @slot;
+  }
+}
+
+@utility field {
+  @apply border-forest/15 text-ink placeholder:text-ink-muted focus:border-sage-500 focus:ring-sage-200/60 w-full rounded-xl border bg-white px-4 py-3 text-base transition outline-none focus:ring-2 sm:text-sm;
+}
+/* Vầng sáng mềm: gradient tròn thay cho filter blur (rẻ hơn nhiều khi cuộn). Màu lấy từ text-* */
+@utility glow {
+  background: radial-gradient(closest-side, currentColor, transparent);
+}
+/* Ảnh/video nền tràn ngang: tối đa 1920px, căn giữa; màn rất rộng (hoặc thu nhỏ trình duyệt) thì hai mép
+   mờ dần vào màu nền section → ảnh không bị phóng to/cắt méo. Dùng cho phần tử absolute có left/right = 0. */
+@utility media-cap {
+  margin-inline: auto;
+  max-width: 1920px;
+  @media (min-width: 1921px) {
+    mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+  }
+}
+/* Khoảng cách dọc CHUẨN cho mọi section (px cố định → thu/phóng trình duyệt không làm phình): 64 / 80 / 96 */
+@utility section-y {
+  @apply py-16 sm:py-20 lg:py-24;
+}
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+/* Dải thẻ trượt ngang: điện thoại vuốt native; máy có chuột KHÔNG cho con lăn cuộn bên trong
+   (overflow hidden — mũi tên vẫn scrollTo được) → cuộn trang qua dải thẻ luôn do Lenis xử lý, không giật. */
+@layer components {
+  .slider-track {
+    display: flex;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .slider-track::-webkit-scrollbar {
+    display: none;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .slider-track {
+      overflow-x: hidden;
+    }
+  }
+}
+
+/* ---------- Bảng quản trị trên điện thoại: mỗi dòng → 1 thẻ (components/admin/ui.jsx TableShell) ----------
+   Cột đầu (mã đơn / tên khách / sản phẩm) chiếm nguyên hàng, các cột còn lại (tổng, trạng thái, ngày) xếp
+   nối tiếp, cột Thao tác dạt phải → thấy đủ thông tin chính không cần kéo ngang. */
+@media (max-width: 767px) {
+  .mq-stack table {
+    min-width: 0 !important;
+  }
+  .mq-stack thead {
+    display: none;
+  }
+  .mq-stack tbody,
+  .mq-stack tr {
+    display: block;
+  }
+  .mq-stack tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.875rem;
+    padding: 0.875rem 1rem;
+  }
+  .mq-stack td {
+    display: block;
+    padding: 0 !important;
+    max-width: 100%;
+    min-width: 0;
+    text-align: left !important;
+    white-space: normal;
+    overflow-wrap: anywhere; /* đường dẫn / tiêu đề dài xuống dòng thay vì đẩy thẻ tràn ngang */
+  }
+  .mq-stack td * {
+    max-width: 100%;
+    min-width: 0;
+  }
+  .mq-stack td :is(.truncate, .whitespace-nowrap) {
+    white-space: normal;
+  }
+  .mq-stack td:first-child {
+    flex-basis: 100%;
+  }
+  .mq-stack td:last-child {
+    margin-left: auto;
+  }
+}
+
+/* ---------- Reveal on scroll (trạng thái ẩn ban đầu; hooks/useReveal chạy animation) ---------- */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+}
+.reveal[data-reveal="left"] {
+  transform: translateX(-36px);
+}
+.reveal[data-reveal="right"] {
+  transform: translateX(36px);
+}
+.reveal[data-reveal="fade"] {
+  transform: none;
+}
+.reveal[data-reveal="scale"] {
+  transform: scale(0.94);
+}
+/* ảnh phóng to chậm rồi về 1:1 khi cuộn tới (phần tử cha cần overflow-hidden) */
+.reveal[data-reveal="zoom"] {
+  opacity: 1;
+  transform: scale(1.18);
+}
+.reveal[data-reveal="clip"] {
+  transform: none;
+  opacity: 1;
+  clip-path: inset(14% 8% 14% 8% round 2rem);
+}
+
+/* Khối ĐẦU TRANG (thấy ngay khi mở, đánh dấu .reveal-now): chạy đúng hiệu ứng trên bằng CSS ngay khi HTML tới,
+   không chờ JavaScript tải + chạy (điện thoại 4G mất 2–4 giây) → tiêu đề / ảnh banner hiện sớm (LCP nhanh),
+   trông y hệt cũ. hooks/useReveal bỏ qua các phần tử này. */
+@keyframes mq-reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+}
+@keyframes mq-reveal-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes mq-cover-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes mq-rise {
+  from {
+    transform: translateY(28px);
+  }
+}
+/* trượt lên KHÔNG đổi độ mờ — cho ảnh chính đầu trang (ảnh đang mờ thì Chrome không tính LCP) */
+.reveal-now .reveal[data-reveal="rise"] {
+  animation-name: mq-rise;
+}
+@keyframes mq-split-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.35em);
+  }
+}
+.reveal-now .reveal {
+  opacity: 1;
+  transform: none;
+  animation: mq-reveal-up 0.95s cubic-bezier(0.22, 1, 0.36, 1) var(--reveal-delay, 0ms) both;
+}
+.reveal-now .reveal[data-reveal="fade"] {
+  animation-name: mq-reveal-fade;
+  animation-duration: 0.9s;
+}
+.reveal-now .split .split-unit {
+  opacity: 1;
+  transform: none;
+  animation: mq-split-in 0.8s cubic-bezier(0.22, 1, 0.36, 1)
+    calc(var(--base, 0ms) + var(--i, 0) * var(--step, 45ms)) both;
+}
+
+/* ---------- SplitText: hiện từng từ (opacity + transform, không blur để mượt) ---------- */
+.split .split-unit {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(0.35em);
+}
+
+/* ---------- Marquee: dừng khi hover ---------- */
+.marquee-pause:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+/* ---------- Chuyển trang (components/fx/PageTransition) ----------
+   Rời trang: nội dung mờ dần + trôi nhẹ lên; vào trang mới: hiện lên từ dưới.
+   Nền giữa 2 trang là màu body (kem) → không chớp trắng. */
+main {
+  transition:
+    opacity 0.2s var(--ease-out-expo),
+    transform 0.2s var(--ease-out-expo);
+}
+main.page-leave {
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+}
+main.page-enter {
+  animation: pageIn 0.5s var(--ease-out-expo) both;
+}
+@keyframes pageIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes lbIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes searchIn {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes searchOut {
+  from {
+    transform: none;
+  }
+  to {
+    transform: translateY(-100%);
+  }
+}
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes sheetOut {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+}
+@keyframes sheetIn {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes loadbar {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes popIn {
+  0% {
+    transform: scale(0.6);
+  }
+  60% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Ẩn nút "hiện mật khẩu" / "xoá" sẵn có của Edge — form đã có nút con mắt riêng (tránh hiện 2 con mắt) */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear,
+input::-ms-clear {
+  display: none;
+}
+
+/* Con trỏ bàn tay cho mọi phần tử bấm được (Tailwind v4 mặc định để con trỏ thường cho <button>) */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"],
+  summary,
+  select,
+  label[for],
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="file"] {
+    cursor: pointer;
+  }
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
+
+/* Từ khu Admin quay về trang chủ → không hiện màn chào (xem components/fx/Preloader.jsx) */
+html[data-skip-preloader] .mq-preloader {
+  display: none;
+}
+
+/* =============================================================================
+   Nội dung bài viết — dùng CHUNG cho trình soạn thảo trong Admin và trang công khai
+   (soạn thấy thế nào, lên website y như vậy). HTML đã được backend lọc an toàn.
+   ============================================================================= */
+.rich-content {
+  color: var(--color-ink-soft);
+  font-size: 17px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+/* Nhịp khoảng cách (theo cỡ chữ thân bài 17px = 1em ở đoạn văn):
+   - giữa các đoạn: ~1 dòng trống nhỏ (1em ≈ 17px)
+   - trước tiêu đề lớn ≈ 44px, sau ≈ 14px → tiêu đề "dính" với nội dung của nó, tách rõ với phần trước
+   - trước tiêu đề nhỏ ≈ 30px, sau ≈ 10px */
+.rich-content > * + * {
+  margin-top: 1em;
+}
+.rich-content h2 {
+  margin-top: 1.5em; /* 1.5 × 29.6px ≈ 44px */
+  font-family: var(--font-serif);
+  font-size: 1.85rem;
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--color-forest);
+}
+.rich-content h3 {
+  margin-top: 1.35em; /* 1.35 × 22.4px ≈ 30px */
+  font-family: var(--font-serif);
+  font-size: 1.4rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-forest);
+}
+/* nội dung ngay sau tiêu đề: sát hơn (đo theo cỡ chữ của phần tử sau → đặt bằng px cho đều) */
+.rich-content h2 + * {
+  margin-top: 14px;
+}
+.rich-content h3 + * {
+  margin-top: 10px;
+}
+/* tiêu đề nhỏ ngay dưới tiêu đề lớn */
+.rich-content h2 + h3 {
+  margin-top: 16px;
+}
+.rich-content > :first-child {
+  margin-top: 0;
+}
+.rich-content strong,
+.rich-content b {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+.rich-content a {
+  color: var(--color-sage-700);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.rich-content a:hover {
+  color: var(--color-forest);
+}
+.rich-content ul,
+.rich-content ol {
+  padding-left: 1.4em;
+}
+.rich-content ul {
+  list-style: disc;
+}
+.rich-content ol {
+  list-style: decimal;
+}
+.rich-content li::marker {
+  color: var(--color-sage-500);
+  font-weight: 600;
+}
+.rich-content li + li {
+  margin-top: 0.45em;
+}
+.rich-content li > p {
+  margin: 0;
+}
+/* Khung nổi bật (mẹo, lưu ý) */
+.rich-content blockquote {
+  border-left: 3px solid var(--color-sage-500);
+  border-radius: 0 14px 14px 0;
+  background: var(--color-sage-50);
+  padding: 1.1em 1.4em;
+  color: var(--color-forest);
+  font-weight: 500;
+}
+.rich-content blockquote > * + * {
+  margin-top: 0.6em;
+}
+/* Ảnh giữa bài: co theo khung bài, không quá cao, căn giữa, bo góc */
+.rich-content img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  max-height: min(80vh, 720px);
+  margin: 2em auto;
+  border-radius: 16px;
+  object-fit: contain;
+}
+.rich-content hr {
+  margin: 2.5em 0;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-forest) 12%, transparent);
+}
+.rich-content mark {
+  border-radius: 3px;
+  padding: 0 0.15em;
+  color: inherit;
+}
+.rich-content code {
+  border-radius: 4px;
+  background: var(--color-linen);
+  padding: 0.1em 0.35em;
+  font-size: 0.9em;
+}
+/* Bảng: cuộn ngang trên điện thoại */
+.rich-content table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 15px;
+  line-height: 1.6;
+}
+.rich-content th,
+.rich-content td {
+  min-width: 7rem;
+  border: 1px solid color-mix(in srgb, var(--color-forest) 14%, transparent);
+  padding: 0.6em 0.85em;
+  text-align: left;
+  vertical-align: top;
+}
+.rich-content th {
+  background: var(--color-sage-50);
+  font-weight: 600;
+  color: var(--color-forest);
+}
+.rich-content th > p,
+.rich-content td > p {
+  margin: 0;
+}
+
+/* Riêng trong trình soạn thảo */
+.rich-editor {
+  min-height: 400px;
+  outline: none;
+}
+.rich-editor p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--color-ink-muted);
+  pointer-events: none;
+}
+/* Ảnh trong trình soạn thảo (EditorImage.jsx): khung bọc nhận khoảng cách, ảnh gọn hơn trang công khai
+   (cao tối đa 420px) để vừa tầm mắt khi soạn; bấm chọn → viền xanh + nút X */
+.rich-editor .rich-img {
+  margin: 1.75em auto;
+  border-radius: 16px;
+  cursor: pointer;
+  line-height: 0;
+}
+.rich-editor .rich-img img {
+  margin: 0;
+  max-height: min(60vh, 420px);
+  width: auto;
+}
+.rich-editor .rich-img.ProseMirror-selectednode,
+.rich-editor .rich-img.is-selected {
+  outline: 3px solid var(--color-sage-400);
+  outline-offset: 3px;
+}
+.rich-editor .selectedCell {
+  background: var(--color-sage-100);
+}
+
+/* Khu quản trị: ô con của bố cục lưới được phép co nhỏ hơn nội dung (mặc định CSS là min-width:auto → tên /
+   ghi chú dài không khoảng trắng đẩy cả thẻ rộng quá màn hình). :where() = độ ưu tiên 0 → class min-w-* riêng
+   của từng ô vẫn thắng. */
+:where(.admin-shell .grid > *) {
+  min-width: 0;
+}
