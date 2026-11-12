@@ -70,6 +70,10 @@ const MESSAGES = {
       "Cảm ơn bạn! Chúng tôi đã nhận được xác nhận chuyển khoản, sẽ kiểm tra và gọi xác nhận đơn sớm nhất.",
     reviewQr: "Chưa chuyển khoản được? Xem lại mã QR",
     checking: "Đang kiểm tra",
+    paymentReceived:
+      "Cảm ơn bạn! Chúng tôi đã nhận được thanh toán. Đơn hàng đang được chuẩn bị, chuyên viên sẽ gọi xác nhận giao hàng.",
+    paidBadge: "Đã nhận thanh toán",
+    cancelled: "Đơn hàng này đã bị hủy. Nếu cần hỗ trợ, vui lòng gọi hotline {phone}.",
     network:
       "Mạng chậm hoặc mất kết nối nên chưa nhận được xác nhận. Vui lòng bấm “{button}” lại — hệ thống không tạo trùng đơn — hoặc gọi hotline {phone}.",
     priceChanged:
@@ -95,6 +99,10 @@ const MESSAGES = {
       "Thank you! We've received your transfer confirmation and will verify it and call you shortly.",
     reviewQr: "Haven't paid yet? Show the QR code again",
     checking: "Verifying",
+    paymentReceived:
+      "Thank you! We've received your payment. Your order is being prepared and we'll call to arrange delivery.",
+    paidBadge: "Payment received",
+    cancelled: "This order has been cancelled. Need help? Call {phone}.",
     network:
       "Your connection is slow or offline, so we couldn't confirm your order. Please press “{button}” again — you won't be charged twice — or call {phone}.",
     priceChanged:
@@ -211,13 +219,74 @@ export default function CheckoutForm({ labels }) {
   // Đặt xong → cuộn tới ngay khối "Đặt hàng thành công" (mã đơn + tổng tiền). Trước đây cuộn lên đầu trang:
   // điện thoại chỉ thấy ảnh bìa "Điền thông tin giao hàng…", khách phải tự cuộn mới thấy mã đơn.
   const successRef = useRef(null);
+  const placedId = order?.orderId;
+  // chỉ cuộn khi có ĐƠN MỚI (theo mã đơn) — cập nhật trạng thái thanh toán bên dưới không làm trang giật
   useEffect(() => {
-    if (!order || !successRef.current) return;
+    if (!placedId || !successRef.current) return;
     const y = successRef.current.getBoundingClientRect().top + window.scrollY - 110;
     if (window.__lenis) window.__lenis.scrollTo(y, { immediate: true });
     else window.scrollTo({ top: y });
     successRef.current.focus({ preventScroll: true });
-  }, [order]);
+  }, [placedId]);
+
+  // Đơn chuyển khoản đang chờ shop kiểm tra tiền → hỏi lại trạng thái (15 giây / lần + ngay khi khách quay lại
+  // tab) qua API tra cứu (mã đơn + SĐT). Admin bấm "Xác nhận đã thanh toán" → màn này đổi sang "Đã nhận thanh toán".
+  // Dừng khi đã nhận tiền / đơn bị hủy / quá 30 phút / tra cứu lỗi (không hỏi mãi).
+  const watchPayment =
+    order?.paymentMethod === PAY_BANK &&
+    order.paymentStatus !== "paid" &&
+    order.orderStatus !== "cancelled" &&
+    Boolean(order.phone);
+  const watchKey = watchPayment ? `${order.orderId}|${order.phone}` : "";
+  useEffect(() => {
+    if (!watchKey) return;
+    const [code, phone] = watchKey.split("|");
+    const startedAt = Date.now();
+    let alive = true;
+    let timer = null;
+    const check = async () => {
+      if (!alive || document.visibilityState === "hidden") return;
+      try {
+        const res = await api(
+          `/orders/track/${encodeURIComponent(code)}?phone=${encodeURIComponent(phone)}`,
+          { retry: false },
+        );
+        if (!alive) return;
+        const d = res.data;
+        setOrder((prev) => {
+          if (!prev || prev.orderId !== code) return prev;
+          const next = {
+            ...prev,
+            paymentStatus: d.paymentStatus,
+            paymentClaimed: d.paymentClaimed,
+            payment: d.payment ?? prev.payment,
+            orderStatus: d.status,
+          };
+          try {
+            const saved = JSON.parse(sessionStorage.getItem(LAST_ORDER) ?? "null");
+            if (saved?.orderId === code)
+              sessionStorage.setItem(LAST_ORDER, JSON.stringify({ ...saved, ...next }));
+          } catch {}
+          return next;
+        });
+      } catch {
+        stop(); // không tìm thấy / bị giới hạn / lỗi mạng → thôi hỏi, giữ nguyên màn hình
+      }
+    };
+    const stop = () => {
+      alive = false;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+    const onVisible = () => document.visibilityState === "visible" && check();
+    timer = setInterval(() => {
+      if (Date.now() - startedAt > 30 * 60 * 1000) return stop();
+      check();
+    }, 15_000);
+    document.addEventListener("visibilitychange", onVisible);
+    check(); // tải lại trang → lấy trạng thái mới nhất ngay
+    return stop;
+  }, [watchKey]);
 
   /** Lỗi ở ô nào → cuộn tới + đặt con trỏ vào ô đầu tiên (điện thoại: lỗi thường nằm ngoài màn hình) */
   const focusField = (key) =>
@@ -350,7 +419,9 @@ export default function CheckoutForm({ labels }) {
 
   if (order) {
     // đơn chuyển khoản chưa nhận tiền → còn giữ thông tin chuyển khoản (thu gọn nếu khách đã báo chuyển xong)
-    const transfer = order.payment && order.paymentStatus !== "paid";
+    const cancelled = order.orderStatus === "cancelled";
+    const paidOk = order.paymentMethod === PAY_BANK && order.paymentStatus === "paid" && !cancelled;
+    const transfer = order.payment && order.paymentStatus !== "paid" && !cancelled;
     const claimed = transfer && order.paymentClaimed;
     return (
       <div
@@ -375,8 +446,23 @@ export default function CheckoutForm({ labels }) {
             transfer ? "max-w-xl text-balance" : "max-w-lg",
           )}
         >
-          {claimed ? msg.thanksPaid : transfer ? labels.thanksTextBank : labels.thanksText}
+          {cancelled
+            ? msg.cancelled.replace("{phone}", siteConfig.phone)
+            : paidOk
+              ? msg.paymentReceived
+              : claimed
+                ? msg.thanksPaid
+                : transfer
+                  ? labels.thanksTextBank
+                  : labels.thanksText}
         </p>
+        {/* shop đã xác nhận nhận tiền (cập nhật tự động, không cần tải lại trang) */}
+        {paidOk && (
+          <p className="mt-4 inline-flex [animation:popIn_.4s_ease-out] items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-sm font-semibold text-emerald-800">
+            <CheckCircle2 className="size-4" aria-hidden="true" />
+            {msg.paidBadge}
+          </p>
+        )}
         <p className="bg-sage-50 mt-6 inline-block rounded-full px-5 py-2 text-sm">
           {labels.orderId}: <strong className="text-forest">{order.orderId}</strong> -{" "}
           {formatPrice(order.total, lang)}
