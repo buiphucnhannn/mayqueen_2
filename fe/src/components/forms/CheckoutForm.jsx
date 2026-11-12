@@ -4,13 +4,24 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import Honeypot from "@/components/forms/Honeypot";
 import Image from "@/components/ui/Img";
-import { BadgePercent, Banknote, Check, CheckCircle2, ShoppingBag, Trash2 } from "lucide-react";
+import {
+  BadgePercent,
+  Banknote,
+  Check,
+  CheckCircle2,
+  QrCode,
+  ShoppingBag,
+  Trash2,
+  Truck,
+} from "lucide-react";
 import QtyStepper from "@/components/cart/QtyStepper";
+import BankTransferPanel from "@/components/payment/BankTransferPanel";
 import Button from "@/components/ui/Button";
 import { siteConfig } from "@/config/site";
 import { useCart } from "@/context/CartContext";
 import { href } from "@/i18n";
 import { api } from "@/lib/api";
+import { optionForQty } from "@/lib/pack";
 import ConsentCheckbox, { consentPayload } from "@/components/forms/ConsentCheckbox";
 import {
   NAME_MAX,
@@ -36,6 +47,9 @@ const MESSAGES = {
       "Sản phẩm sau vừa ngừng bán nên đã được bỏ khỏi giỏ: {items}. Vui lòng kiểm tra lại đơn trước khi đặt.",
     track: "Tra cứu đơn hàng",
     remove: "Bỏ khỏi đơn",
+    payUnavailable:
+      "Hình thức chuyển khoản tạm thời chưa hỗ trợ. Vui lòng chọn thanh toán khi nhận hàng (COD) hoặc gọi hotline {phone}.",
+    orTransfer: "Hoặc chọn chuyển khoản trước để được miễn phí vận chuyển ngay.",
   },
   en: {
     network:
@@ -46,6 +60,9 @@ const MESSAGES = {
       "These items are no longer available and were removed from your cart: {items}. Please review your order.",
     track: "Track this order",
     remove: "Remove from order",
+    payUnavailable:
+      "Bank transfer is temporarily unavailable. Please choose cash on delivery (COD) or call {phone}.",
+    orTransfer: "Or pay by bank transfer first to get free shipping right away.",
   },
 };
 
@@ -56,9 +73,18 @@ const newKey = () =>
   globalThis.crypto?.randomUUID?.() ??
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
 
-// Trang đặt hàng: thông tin giao hàng + hình thức thanh toán (chỉ COD) + tóm tắt đơn. Gửi tới backend POST /api/v1/orders (be/).
+const PAY_COD = "cod";
+const PAY_BANK = "bank_transfer";
+
+// Trang đặt hàng: thông tin giao hàng + hình thức thanh toán (COD / chuyển khoản VietQR) + tóm tắt đơn.
+// Gửi tới backend POST /api/v1/orders (be/) — backend tính lại giá + phí ship theo đúng luật bên dưới.
 export default function CheckoutForm({ labels }) {
-  const { lang, lines, subtotal, saved, shipping, total, setQty, clear } = useCart();
+  const { lang, lines, subtotal, saved, shipping: codShipping, setQty, clear } = useCart();
+  const [paymentMethod, setPaymentMethod] = useState(PAY_COD);
+  // Chuyển khoản trước → miễn phí vận chuyển; COD → theo ngưỡng freeship (giỏ hàng tính sẵn).
+  // Giữ ĐỒNG BỘ với shippingFeeFor ở be/src/services/payment.service.js
+  const shipping = paymentMethod === PAY_BANK ? 0 : codShipping;
+  const total = subtotal + shipping;
   const [values, setValues] = useState(initial);
   // ô "Tôi đồng ý … Chính sách bảo mật / đổi trả" — KHÔNG tick sẵn (luật yêu cầu khách chủ động đồng ý)
   const [agree, setAgree] = useState(false);
@@ -143,8 +169,8 @@ export default function CheckoutForm({ labels }) {
 
     const items = lines.map(({ slug, optionId, qty }) => ({ slug, optionId, qty }));
     // Mã chống trùng đơn: giữ nguyên khi khách bấm lại sau lỗi mạng (backend trả đơn đã tạo, không tạo đơn 2),
-    // đổi mã khi giỏ hàng đổi (là đơn khác)
-    const sig = JSON.stringify(items);
+    // đổi mã khi giỏ hàng hoặc hình thức thanh toán đổi (là đơn khác)
+    const sig = JSON.stringify({ items, paymentMethod });
     if (attempt.current?.sig !== sig) attempt.current = { sig, key: newKey() };
     // Khách đã được báo giá mới (lỗi PRICE_CHANGED) và bấm đặt lại → đồng ý với tổng mới đó
     const expectedTotal = accepted?.sig === sig ? accepted.total : total;
@@ -159,6 +185,7 @@ export default function CheckoutForm({ labels }) {
         body: {
           customer: { ...values, name: cleanName(values.name), phone: values.phone.trim() },
           items,
+          paymentMethod,
           lang,
           consent: consentPayload(),
           idempotencyKey: attempt.current.key,
@@ -208,6 +235,9 @@ export default function CheckoutForm({ labels }) {
         setAccepted({ sig, total: err.details.total });
         router.refresh();
         setFormError(msg.priceChanged.replace("{total}", formatPrice(err.details.total, lang)));
+      } else if (err.code === "PAYMENT_METHOD_UNAVAILABLE") {
+        setPaymentMethod(PAY_COD);
+        setFormError(msg.payUnavailable.replace("{phone}", siteConfig.phone));
       } else if (err.status === 0)
         // mất mạng / quá lâu: đơn CÓ THỂ đã lưu → bấm lại an toàn nhờ mã chống trùng
         setFormError(msg.network.replace("{phone}", siteConfig.phone));
@@ -215,23 +245,39 @@ export default function CheckoutForm({ labels }) {
     }
   };
 
-  if (order)
+  if (order) {
+    // đơn chuyển khoản chưa nhận tiền → hiện QR + thông tin tài khoản ngay dưới lời cảm ơn
+    const transfer = order.payment && order.paymentStatus !== "paid";
     return (
       <div
         ref={successRef}
         tabIndex={-1}
-        className="mx-auto max-w-lg py-10 text-center outline-none"
+        className={cn(
+          // khung trang (section-y) đã có lề 64–96px trên/dưới → không thêm lề riêng, kéo gọn bớt 1 chút
+          // (tổng còn ~48–64px mỗi phía thay vì ~136px)
+          "mx-auto -my-4 text-center outline-none sm:-my-6 lg:-my-8",
+          transfer ? "max-w-3xl" : "max-w-lg",
+        )}
         role="status"
       >
         <span className="bg-leaf-soft text-sage-700 mx-auto grid size-20 [animation:popIn_.5s_ease-out] place-items-center rounded-full">
           <CheckCircle2 className="size-10" aria-hidden="true" />
         </span>
         <h2 className="h-display mt-6 text-4xl">{labels.thanks}</h2>
-        <p className="text-ink-soft mt-3">{labels.thanksText}</p>
+        {/* chuyển khoản: khung rộng hơn + text-balance → câu cảm ơn đúng 2 dòng dài đều nhau */}
+        <p
+          className={cn(
+            "text-ink-soft mx-auto mt-3",
+            transfer ? "max-w-xl text-balance" : "max-w-lg",
+          )}
+        >
+          {transfer ? labels.thanksTextBank : labels.thanksText}
+        </p>
         <p className="bg-sage-50 mt-6 inline-block rounded-full px-5 py-2 text-sm">
           {labels.orderId}: <strong className="text-forest">{order.orderId}</strong> -{" "}
           {formatPrice(order.total, lang)}
         </p>
+        {transfer && <BankTransferPanel payment={order.payment} lang={lang} className="mt-8" />}
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Button href={href(lang, "/san-pham")} arrow>
             {labels.continue}
@@ -248,6 +294,7 @@ export default function CheckoutForm({ labels }) {
         </a>
       </div>
     );
+  }
 
   // Trước khi đọc xong giỏ hàng (localStorage) → khung chờ, tránh chớp màn "Giỏ hàng trống" khi tải lại trang
   if (!hydrated)
@@ -299,7 +346,9 @@ export default function CheckoutForm({ labels }) {
   return (
     <form onSubmit={submit} noValidate className="grid gap-10 lg:grid-cols-[1.2fr_1fr] lg:gap-14">
       <Honeypot ref={honeypot} />
-      <div className="space-y-8">
+      {/* Cột trái cao bằng hàng của lưới (= cột cao hơn); thẻ "Hình thức thanh toán" dãn phần còn thiếu
+          → đáy 2 cột luôn bằng nhau dù giỏ nhiều hay ít món (cột phải vẫn sticky, dừng đúng đáy cột trái) */}
+      <div className="flex flex-col gap-8">
         <fieldset className="reveal bg-pearl shadow-card rounded-lg p-6 sm:p-8">
           <legend className="sr-only">{labels.shippingInfo}</legend>
           <h2 className="text-forest font-serif text-2xl">{labels.shippingInfo}</h2>
@@ -340,21 +389,76 @@ export default function CheckoutForm({ labels }) {
           </div>
         </fieldset>
 
-        <fieldset className="reveal bg-pearl shadow-card rounded-lg p-6 sm:p-8">
+        <fieldset className="reveal bg-pearl shadow-card rounded-lg p-6 sm:p-8 lg:flex-1">
           <legend className="sr-only">{labels.payment}</legend>
           <h2 className="text-forest font-serif text-2xl">{labels.payment}</h2>
-          {/* Chỉ một hình thức: thanh toán khi nhận hàng — hiển thị dạng thẻ thông tin (không cần chọn) */}
-          <div className="border-sage-600 bg-sage-50 mt-5 flex items-center gap-4 rounded-3xl border-2 p-4">
-            <span className="bg-sage-100 text-sage-700 grid size-11 shrink-0 place-items-center rounded-full">
-              <Banknote className="size-5" aria-hidden="true" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="text-forest block font-semibold">{labels.cod}</span>
-              <span className="text-ink-muted block text-xs">{labels.codNote}</span>
-            </span>
-            <span className="bg-sage-600 grid size-6 shrink-0 place-items-center rounded-full text-white">
-              <Check className="size-3.5" aria-hidden="true" />
-            </span>
+          {/* Lời nhắc ưu đãi: chuyển khoản trước được freeship */}
+          <p className="text-sage-800 mt-2 flex items-center gap-2 text-sm">
+            <Truck className="text-sage-600 size-4 shrink-0" aria-hidden="true" />
+            {labels.transferTip}
+          </p>
+          {/* 2 thẻ chọn dạng radio thật (bàn phím: Tab vào nhóm, mũi tên để đổi) */}
+          <div role="radiogroup" aria-label={labels.payment} className="mt-5 grid gap-3">
+            {[
+              { value: PAY_COD, Icon: Banknote, title: labels.cod, note: labels.codNote },
+              {
+                value: PAY_BANK,
+                Icon: QrCode,
+                title: labels.bank,
+                note: labels.bankNote,
+                badge: labels.freeShipBadge,
+              },
+            ].map(({ value, Icon, title, note, badge }) => {
+              const active = paymentMethod === value;
+              return (
+                <label
+                  key={value}
+                  className={cn(
+                    "flex cursor-pointer items-center gap-4 rounded-3xl border-2 p-4 transition-colors",
+                    "has-[:focus-visible]:ring-sage-300 has-[:focus-visible]:ring-2",
+                    active
+                      ? "border-sage-600 bg-sage-50"
+                      : "border-forest/10 hover:border-sage-300 bg-white",
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value={value}
+                    checked={active}
+                    onChange={() => setPaymentMethod(value)}
+                    className="sr-only"
+                  />
+                  <span
+                    className={cn(
+                      "grid size-11 shrink-0 place-items-center rounded-full",
+                      active ? "bg-sage-100 text-sage-700" : "bg-sage-50 text-sage-600",
+                    )}
+                  >
+                    <Icon className="size-5" aria-hidden="true" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="text-forest flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold">
+                      {title}
+                      {badge && (
+                        <span className="bg-leaf-soft text-forest shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold tracking-wide whitespace-nowrap uppercase">
+                          {badge}
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-ink-muted block text-xs">{note}</span>
+                  </span>
+                  <span
+                    className={cn(
+                      "grid size-6 shrink-0 place-items-center rounded-full border-2",
+                      active ? "border-sage-600 bg-sage-600 text-white" : "border-forest/20",
+                    )}
+                  >
+                    {active && <Check className="size-3.5" aria-hidden="true" />}
+                  </span>
+                </label>
+              );
+            })}
           </div>
         </fieldset>
       </div>
@@ -373,10 +477,16 @@ export default function CheckoutForm({ labels }) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-forest text-sm leading-snug font-semibold">{l.name}</p>
-                  <p className="text-ink-muted text-xs">
-                    {l.optionLabel}
-                    {l.optionNote && <span className="block">{l.optionNote}</span>}
-                  </p>
+                  {/* theo số lượng: "Combo 4 × 2" + "6 Mayqueen Slim + 4 Yodetox Extra" */}
+                  {(() => {
+                    const o = optionForQty(l);
+                    return (
+                      <p className="text-ink-muted text-xs">
+                        {o.label}
+                        {o.note && <span className="block">{o.note}</span>}
+                      </p>
+                    );
+                  })()}
                   {/* tối thiểu 1 (bấm "−" không vô tình xoá món + mất form); xoá bằng nút thùng rác rõ ràng */}
                   <div className="mt-2 flex items-center gap-2">
                     <QtyStepper
@@ -442,7 +552,23 @@ export default function CheckoutForm({ labels }) {
                 {(lang === "en"
                   ? "Add {amount} more to get free shipping."
                   : "Mua thêm {amount} để được miễn phí vận chuyển."
-                ).replace("{amount}", formatPrice(siteConfig.freeShipThreshold - subtotal, lang))}
+                ).replace(
+                  "{amount}",
+                  formatPrice(siteConfig.freeShipThreshold - subtotal, lang),
+                )}{" "}
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod(PAY_BANK)}
+                  className="text-forest font-semibold underline underline-offset-2"
+                >
+                  {msg.orTransfer}
+                </button>
+              </p>
+            )}
+            {/* chuyển khoản làm phí ship về 0 (dù chưa đủ ngưỡng) → nói rõ lý do */}
+            {paymentMethod === PAY_BANK && codShipping > 0 && (
+              <p className="bg-sage-50 text-sage-800 -mt-1 rounded-xl px-3 py-2 text-xs leading-relaxed">
+                {labels.transferFreeShip}
               </p>
             )}
             <div className="border-forest/10 flex items-baseline justify-between border-t pt-4">

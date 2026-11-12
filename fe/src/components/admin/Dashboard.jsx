@@ -77,7 +77,13 @@ export default function Dashboard() {
     {
       label: "Đơn chờ xác nhận",
       value: data?.orderStats.byStatus.pending ?? 0,
-      sub: data && `Tổng cộng ${data.orderStats.total} đơn`,
+      sub:
+        data &&
+        `Tổng cộng ${data.orderStats.total} đơn${
+          data.orderStats.awaitingPayment
+            ? ` · ${data.orderStats.awaitingPayment} chờ chuyển khoản`
+            : ""
+        }`,
       href: "/admin/don-hang",
       Icon: ShoppingBag,
     },

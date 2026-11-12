@@ -2,7 +2,10 @@ import { Schema, model } from "mongoose";
 import { consentSchema, toJSONOptions } from "./shared.schema.js";
 
 export const ORDER_STATUSES = ["pending", "confirmed", "shipping", "completed", "cancelled"];
-export const PAYMENT_METHODS = ["cod"]; // chỉ hỗ trợ thanh toán khi nhận hàng
+// cod: thanh toán khi nhận hàng · bank_transfer: chuyển khoản trước qua mã VietQR (services/payment.service.js)
+export const PAYMENT_METHODS = ["cod", "bank_transfer"];
+// Trạng thái nhận tiền (dùng cho đơn chuyển khoản: admin đối chiếu sao kê rồi bấm "Xác nhận đã thanh toán")
+export const PAYMENT_STATUSES = ["unpaid", "paid"];
 
 /** Dòng hàng — LƯU LẠI tên/giá tại thời điểm đặt (đổi giá sản phẩm sau này không ảnh hưởng đơn cũ). */
 const orderLineSchema = new Schema(
@@ -37,6 +40,22 @@ const orderSchema = new Schema(
     shippingFee: { type: Number, required: true, min: 0 },
     total: { type: Number, required: true, min: 0 },
     paymentMethod: { type: String, enum: PAYMENT_METHODS, default: "cod" },
+    // Đơn cũ (trước khi có chuyển khoản) không có 2 trường này → đọc như "unpaid" (xem payment.service isPaid)
+    paymentStatus: { type: String, enum: PAYMENT_STATUSES, default: "unpaid" },
+    paidAt: { type: Date, default: null }, // lúc admin xác nhận đã nhận tiền
+    // Nhật ký xác nhận / bỏ xác nhận thanh toán (đối soát: ai cũng thấy đơn được xác nhận nhận tiền lúc nào)
+    paymentHistory: {
+      type: [
+        new Schema(
+          {
+            status: { type: String, enum: PAYMENT_STATUSES },
+            at: { type: Date, default: Date.now },
+          },
+          { _id: false },
+        ),
+      ],
+      default: () => [],
+    },
     status: { type: String, enum: ORDER_STATUSES, default: "pending", index: true },
     // Nhật ký đổi trạng thái (ai cũng thấy được đơn đã đi qua những bước nào, lúc nào)
     statusHistory: {
@@ -58,5 +77,6 @@ const orderSchema = new Schema(
 );
 
 orderSchema.index({ createdAt: -1 });
+orderSchema.index({ paymentMethod: 1, paymentStatus: 1 }); // lọc "Chờ chuyển khoản" trong trang quản trị
 
 export const Order = model("Order", orderSchema);

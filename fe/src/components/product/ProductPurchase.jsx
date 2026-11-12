@@ -8,6 +8,7 @@ import Button from "@/components/ui/Button";
 import Price from "@/components/ui/Price";
 import { useCart } from "@/context/CartContext";
 import { href } from "@/i18n";
+import { packText } from "@/lib/pack";
 import { cn, discountPercent, formatPrice } from "@/lib/utils";
 
 /**
@@ -103,6 +104,20 @@ export default function ProductPurchase({ product, lang, labels }) {
           {labels.addToCart}
         </Button>
       </div>
+      {/* mua từ 2 → nói rõ tổng nhận được: "6 Mayqueen Slim + 4 Yodetox Extra" / "2 lọ Mayqueen Slim" */}
+      {qty > 1 && (
+        <p className="bg-sage-50 text-sage-800 mt-3 rounded-xl px-4 py-2.5 text-center text-sm">
+          {lang === "en" ? "You'll get" : "Bạn sẽ nhận"}:{" "}
+          <strong className="text-forest font-semibold">
+            {packText({
+              name: product.name,
+              optionLabel: option.label,
+              optionNote: option.note,
+              qty,
+            })}
+          </strong>
+        </p>
+      )}
       <Button size="lg" arrow className="mt-3 w-full" onClick={buyNow}>
         {labels.buyNow} - {formatPrice(option.price * qty, lang)}
       </Button>

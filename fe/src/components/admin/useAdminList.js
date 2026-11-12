@@ -50,6 +50,8 @@ function writeUrl(params, defaultLimit) {
  *   list.update({ status: "pending" })  → về trang 1 rồi tải lại
  *   list.setPage(3) / list.setLimit(50)
  *   list.setItems((items) => ...)        → cập nhật tại chỗ sau khi sửa 1 dòng
+ *   list.reload()                        → tải lại, GIỮ bộ lọc (sau khi thêm / sửa / xóa)
+ *   list.refresh()                       → nút "Làm mới": bỏ hết bộ lọc + từ khóa, về trang 1, tải lại
  *
  * - Trang, số dòng/trang, bộ lọc, từ khóa được giữ trên URL.
  * - Số dòng/trang người dùng chọn được nhớ riêng cho từng danh sách (localStorage).
@@ -129,6 +131,21 @@ export function useAdminList(path, { limit: defaultLimit = 20, initial = {} } = 
     setState((s) => ({ ...s, loading: true }));
     setTick((t) => t + 1);
   }, []);
+
+  // Nút "Làm mới": bỏ HẾT bộ lọc + từ khóa, về trang 1 rồi tải lại (giữ số dòng/trang — là tùy chọn của người dùng).
+  // resets tăng → ô tìm kiếm (key={list.searchKey}) dựng lại, xóa chữ đang gõ.
+  const [resets, setResets] = useState(0);
+  const refresh = useCallback(() => {
+    const p = paramsRef.current;
+    if (!p) return;
+    const next = { page: 1, ...initial, limit: p.limit };
+    paramsRef.current = next;
+    setState((s) => ({ ...s, loading: true }));
+    setParams(next);
+    setTick((t) => t + 1); // không có bộ lọc nào để bỏ → vẫn tải lại dữ liệu mới
+    setResets((n) => n + 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- initial là giá trị mặc định cố định của trang
+  }, []);
   const setItems = useCallback((fn) => setState((s) => ({ ...s, items: fn(s.items) })), []);
 
   // đang lọc / tìm kiếm (ngoài trang & số dòng/trang) → bảng trống nghĩa là "không có kết quả phù hợp"
@@ -140,11 +157,14 @@ export function useAdminList(path, { limit: defaultLimit = 20, initial = {} } = 
     ...state,
     filtered,
     ready: !!params,
+    // key cho ô tìm kiếm: dựng lại khi đọc xong URL (hiện từ khóa cũ) và khi bấm "Làm mới" (xóa từ khóa)
+    searchKey: `${params ? "ready" : "init"}-${resets}`,
     params: params ?? { page: 1, ...initial },
     update,
     setPage,
     setLimit,
     reload,
+    refresh,
     setItems,
   };
 }

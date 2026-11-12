@@ -94,16 +94,16 @@ export const ui = {
     freeShipDone: t("Tuyệt! Đơn hàng được miễn phí vận chuyển", "Great! Your order ships free"),
     remove: t("Xóa", "Remove"),
     note: t(
-      "Kiểm tra hàng trước khi thanh toán - COD toàn quốc",
-      "Inspect before you pay - Nationwide COD",
+      "COD toàn quốc - Chuyển khoản trước được miễn phí vận chuyển",
+      "Nationwide COD - Free shipping when you pay by bank transfer",
     ),
     upsell: t("Hoàn thiện liệu trình", "Complete your ritual"),
   },
   checkout: {
     title: t("Đặt hàng", "Checkout"),
-    seoTitle: t("Đặt hàng – Thanh toán khi nhận hàng", "Checkout – Cash on delivery"),
+    seoTitle: t("Đặt hàng – COD hoặc chuyển khoản", "Checkout – Cash on delivery or bank transfer"),
     // banner đầu trang (cùng bố cục các trang con: dòng nhỏ + tiêu đề 2 màu + mô tả)
-    eyebrow: t("Thanh toán khi nhận hàng", "Cash on delivery"),
+    eyebrow: t("COD hoặc chuyển khoản", "Cash on delivery or bank transfer"),
     heroTitle: t("Hoàn tất", "Complete"),
     heroAccent: t("đơn hàng", "your order"),
     text: t(
@@ -119,6 +119,20 @@ export const ui = {
     payment: t("Hình thức thanh toán", "Payment method"),
     cod: t("Thanh toán khi nhận hàng (COD)", "Cash on delivery (COD)"),
     codNote: t("Kiểm tra hàng rồi mới thanh toán", "Inspect your order, then pay"),
+    bank: t("Chuyển khoản ngân hàng (quét mã QR)", "Bank transfer (scan QR)"),
+    bankNote: t(
+      "Đặt xong chỉ cần quét mã QR bằng app ngân hàng",
+      "After ordering, just scan the QR in your banking app",
+    ),
+    freeShipBadge: t("Freeship", "Free shipping"),
+    transferTip: t(
+      "Ưu tiên chuyển khoản trước được miễn phí vận chuyển",
+      "Pay by bank transfer first and shipping is free",
+    ),
+    transferFreeShip: t(
+      "Chuyển khoản trước nên đơn được miễn phí vận chuyển.",
+      "You're paying by bank transfer, so shipping is free.",
+    ),
     summary: t("Đơn hàng của bạn", "Your order"),
     subtotal: t("Tạm tính", "Subtotal"),
     saved: t("Bạn đã tiết kiệm", "You saved"),
@@ -153,6 +167,10 @@ export const ui = {
     thanksText: t(
       "Cảm ơn bạn đã tin chọn Mayqueen. Chuyên viên sẽ gọi xác nhận trong 15 phút (trong giờ làm việc 08:00–22:00).",
       "Thank you for choosing Mayqueen. We'll call to confirm within 15 minutes (during business hours, 8 AM–10 PM).",
+    ),
+    thanksTextBank: t(
+      "Cảm ơn bạn đã chọn Mayqueen! Vui lòng chuyển khoản theo thông tin bên dưới, chúng tôi sẽ gọi xác nhận khi nhận được tiền.",
+      "Thank you for choosing Mayqueen! Please transfer using the details below; we'll call to confirm once payment arrives.",
     ),
     orderId: t("Mã đơn", "Order ID"),
     backHome: t("Về trang chủ", "Back to home"),
@@ -214,6 +232,13 @@ export const ui = {
     shipping: t("Phí vận chuyển", "Shipping"),
     free: t("Miễn phí", "Free"),
     total: t("Tổng cộng", "Total"),
+    payment: t("Thanh toán", "Payment"),
+    methods: {
+      cod: t("Thanh toán khi nhận hàng (COD)", "Cash on delivery (COD)"),
+      bank_transfer: t("Chuyển khoản ngân hàng", "Bank transfer"),
+    },
+    paid: t("Đã thanh toán", "Paid"),
+    awaitingPayment: t("Chờ thanh toán", "Awaiting payment"),
     help: t("Cần hỗ trợ về đơn hàng?", "Need help with your order?"),
     helpText: t(
       "Gọi hotline / Zalo — chuyên viên Mayqueen hỗ trợ 08:00–22:00 mỗi ngày.",

@@ -3,8 +3,10 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Check, PackageSearch, Phone, XCircle } from "lucide-react";
+import BankTransferPanel from "@/components/payment/BankTransferPanel";
 import Button from "@/components/ui/Button";
 import { api } from "@/lib/api";
+import { optionForQty } from "@/lib/pack";
 import { cn, formatPrice, isValidPhone, phoneInput } from "@/lib/utils";
 
 const STEPS = ["pending", "confirmed", "shipping", "completed"];
@@ -340,21 +342,30 @@ function OrderResult({ order, lang, labels }) {
 
       <h3 className="text-forest mt-8 text-sm font-semibold">{labels.items}</h3>
       <ul className="divide-forest/10 mt-2 divide-y">
-        {order.lines.map((l, i) => (
-          <li key={`${l.slug}-${l.optionLabel}-${i}`} className="flex items-start gap-4 py-4">
-            <div className="min-w-0 flex-1">
-              <p className="text-forest text-sm leading-snug font-semibold">{l.name}</p>
-              {l.optionLabel && <p className="text-ink-muted text-xs">{l.optionLabel}</p>}
-              {l.optionNote && <p className="text-ink-muted text-xs">{l.optionNote}</p>}
-              <p className="text-ink-soft mt-1 text-xs">
-                {labels.qty}: {l.qty} × {formatPrice(l.price, lang)}
-              </p>
-            </div>
-            <span className="text-forest shrink-0 text-sm font-semibold">
-              {formatPrice(l.lineTotal ?? l.price * l.qty, lang)}
-            </span>
-          </li>
-        ))}
+        {order.lines.map((l, i) => {
+          // giống trang thanh toán: "Combo 4 × 2" + "6 Mayqueen Slim + 4 Yodetox Extra"
+          const o = optionForQty(l);
+          return (
+            <li key={`${l.slug}-${l.optionLabel}-${i}`} className="flex items-start gap-4 py-4">
+              <div className="min-w-0 flex-1">
+                <p className="text-forest text-sm leading-snug font-semibold">{l.name}</p>
+                {o.label && <p className="text-ink-muted text-xs">{o.label}</p>}
+                {o.note && <p className="text-ink-muted text-xs">{o.note}</p>}
+              </div>
+              <span className="flex shrink-0 flex-col items-end">
+                <span className="text-forest text-sm font-semibold">
+                  {formatPrice(l.lineTotal ?? l.price * l.qty, lang)}
+                </span>
+                {/* mua từ 2 → cách tính tiền ngay dưới thành tiền */}
+                {l.qty > 1 && (
+                  <span className="text-ink-muted mt-0.5 text-xs whitespace-nowrap">
+                    {l.qty} × {formatPrice(l.price, lang)}
+                  </span>
+                )}
+              </span>
+            </li>
+          );
+        })}
       </ul>
       <dl className="border-forest/10 space-y-2 border-t pt-5 text-sm">
         <div className="flex justify-between">
@@ -369,7 +380,35 @@ function OrderResult({ order, lang, labels }) {
           <dt className="text-forest font-semibold">{labels.total}</dt>
           <dd className="text-forest font-serif text-3xl">{formatPrice(order.total, lang)}</dd>
         </div>
+        {order.paymentMethod && (
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+            <dt className="text-ink-soft">{labels.payment}</dt>
+            <dd className="flex flex-wrap items-center justify-end gap-2">
+              <span>{labels.methods[order.paymentMethod] ?? order.paymentMethod}</span>
+              {order.paymentMethod === "bank_transfer" && !cancelled && (
+                <span
+                  className={cn(
+                    "rounded-full border px-2.5 py-0.5 text-xs font-semibold",
+                    order.paymentStatus === "paid"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                      : "border-amber-200 bg-amber-50 text-amber-800",
+                  )}
+                >
+                  {order.paymentStatus === "paid" ? labels.paid : labels.awaitingPayment}
+                </span>
+              )}
+            </dd>
+          </div>
+        )}
       </dl>
+      {/* đơn chuyển khoản chưa nhận tiền → hiện lại QR (backend chỉ gửi khi còn phải thanh toán) */}
+      {order.payment && (
+        <BankTransferPanel
+          payment={order.payment}
+          lang={lang}
+          className="bg-cream/50 mt-8 shadow-none"
+        />
+      )}
     </div>
   );
 }

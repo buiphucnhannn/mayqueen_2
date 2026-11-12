@@ -35,6 +35,11 @@ class ProductRepository extends BaseRepository {
       .lean();
   }
 
+  /** Tên + gói của mọi sản phẩm → đơn vị kho (lọ / hộp) cho "Tổng cần chuẩn bị" trong email báo đơn */
+  findPackUnitsSource() {
+    return this.model.find({}).select("name options.label options.note").lean();
+  }
+
   /** Lấy nhiều sản phẩm theo slug 1 lần (dùng khi tính giá đơn hàng) */
   findActiveBySlugs(slugs) {
     return this.model.find({ slug: { $in: slugs }, isActive: true }).lean();

@@ -62,9 +62,30 @@ const schema = z
     ADMIN_ID: z.string().trim().default(""),
     ADMIN_PASSWORD: z.string().default(""),
     ADMIN_NAME: z.string().trim().default("Quản trị viên"),
+    // Nút "Đăng nhập nhanh (demo)" ở trang đăng nhập: vào admin KHÔNG cần mật khẩu — CHỈ để thử nghiệm.
+    // Mặc định TẮT. Website thật cho khách dùng: luôn để false (hoặc xóa dòng này).
+    DEMO_LOGIN: z.enum(["true", "false"]).default("false"),
 
     FREE_SHIP_THRESHOLD: z.coerce.number().int().nonnegative().default(500000),
     SHIPPING_FEE: z.coerce.number().int().nonnegative().default(30000),
+
+    // ----- Chuyển khoản ngân hàng (mã VietQR: khách quét → app ngân hàng tự điền số tiền + nội dung = mã đơn) -----
+    // Mặc định = tài khoản công ty. Đặt BANK_ACCOUNT_NO rỗng → tắt hình thức chuyển khoản.
+    BANK_BIN: z
+      .string()
+      .trim()
+      .regex(/^\d{6}$/, "must be the 6-digit NAPAS bank BIN")
+      .default("970407"),
+    BANK_NAME: z.string().trim().default("Techcombank"),
+    BANK_ACCOUNT_NO: z
+      .string()
+      .trim()
+      .regex(/^[0-9A-Za-z]{0,19}$/, "letters/digits only, max 19")
+      .default("315868"),
+    BANK_ACCOUNT_NAME: z
+      .string()
+      .trim()
+      .default("CONG TY TNHH DAU TU THUONG MAI VA DICH VU BOT VIET NAM"),
   })
   .superRefine((e, ctx) => {
     if (e.NODE_ENV !== "production") return;
@@ -126,7 +147,15 @@ export const env = Object.freeze({
   maxSessions: e.MAX_SESSIONS,
   cookieSecure: e.COOKIE_SECURE ? e.COOKIE_SECURE === "true" : e.NODE_ENV === "production",
   admin: { id: e.ADMIN_ID, password: e.ADMIN_PASSWORD, name: e.ADMIN_NAME },
+  demoLogin: e.DEMO_LOGIN === "true",
   order: { freeShipThreshold: e.FREE_SHIP_THRESHOLD, shippingFee: e.SHIPPING_FEE },
+  bank: {
+    bin: e.BANK_BIN,
+    name: e.BANK_NAME,
+    accountNo: e.BANK_ACCOUNT_NO,
+    accountName: e.BANK_ACCOUNT_NAME,
+    enabled: Boolean(e.BANK_ACCOUNT_NO),
+  },
   mail: {
     resendKey: e.RESEND_API_KEY,
     from: e.MAIL_FROM,

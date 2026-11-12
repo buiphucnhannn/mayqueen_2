@@ -74,8 +74,8 @@ function sendLater(kind, ref, build, { key = `${kind}-${ref}`, onSent } = {}) {
 
 export const notifyService = {
   /** order: bản ghi đơn vừa lưu (code, customer, lines, subtotal, shippingFee, total, createdAt) */
-  newOrder(order) {
-    sendLater("order", order.code, () => orderEmail(order, { siteUrl: env.mail.siteUrl }));
+  newOrder(order, { units = {} } = {}) {
+    sendLater("order", order.code, () => orderEmail(order, { siteUrl: env.mail.siteUrl, units }));
   },
   /**
    * lead: yêu cầu tư vấn vừa lưu / vừa được khách cập nhật (updated).

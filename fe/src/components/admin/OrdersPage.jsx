@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import {
   Ban,
+  BadgeCheck,
   CheckCircle2,
   Clock3,
+  Landmark,
   MapPin,
   MessageSquareText,
   PackageCheck,
@@ -13,11 +15,18 @@ import {
   StickyNote,
   Trash2,
   Truck,
+  Undo2,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { cn, formatPrice } from "@/lib/utils";
 import { isComboNote, packSummary, packText, unitsFromProducts } from "@/lib/pack";
-import { ORDER_STATUS, statusTabs } from "./constants";
+import {
+  ORDER_STATUS,
+  PAYMENT_FILTERS,
+  PAYMENT_METHOD,
+  PAYMENT_STATUS,
+  statusTabs,
+} from "./constants";
 import {
   Badge,
   Button,
@@ -29,6 +38,7 @@ import {
   Pagination,
   RefreshButton,
   SearchBox,
+  Select,
   TableShell,
   Textarea,
   dateTime,
@@ -143,6 +153,128 @@ const StatusBadge = ({ status }) => (
   <Badge tone={ORDER_STATUS[status]?.tone}>{ORDER_STATUS[status]?.label ?? status}</Badge>
 );
 
+const isTransfer = (order) => order?.paymentMethod === "bank_transfer";
+// đơn cũ (trước khi có chuyển khoản) không có paymentStatus → coi là chưa nhận tiền
+const paymentStatusOf = (order) => order?.paymentStatus ?? "unpaid";
+
+/** Nhãn thanh toán: COD (xám) · Chuyển khoản chờ tiền (vàng) · Đã thanh toán (xanh) */
+function PaymentBadge({ order }) {
+  if (!isTransfer(order)) return <Badge>{PAYMENT_METHOD.cod.label}</Badge>;
+  const s = PAYMENT_STATUS[paymentStatusOf(order)];
+  return <Badge tone={order.status === "cancelled" ? "neutral" : s.tone}>{s.label}</Badge>;
+}
+
+/**
+ * Khối thanh toán trong ngăn chi tiết (chỉ đơn chuyển khoản): số tiền + nội dung cần đối chiếu sao kê,
+ * nút "Xác nhận đã thanh toán" (lưu ngay, có hỏi lại) / "Bỏ xác nhận" khi bấm nhầm.
+ */
+function PaymentSection({ order, onSaved }) {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const confirm = useConfirm();
+  const toast = useToast();
+  const paid = paymentStatusOf(order) === "paid";
+
+  const setPayment = async (paymentStatus) => {
+    const ok = await confirm(
+      paymentStatus === "paid"
+        ? {
+            title: `Xác nhận đã nhận tiền đơn ${order.code}?`,
+            message: `Chỉ xác nhận khi sao kê tài khoản đã có khoản ${formatPrice(order.total)} với nội dung “${order.code}”.`,
+            confirmLabel: "Đã nhận tiền",
+            cancelLabel: "Chưa",
+          }
+        : {
+            title: "Bỏ xác nhận thanh toán?",
+            message: `Đơn ${order.code} sẽ quay về “Chờ chuyển khoản” và khách tra cứu đơn sẽ thấy lại mã QR.`,
+            confirmLabel: "Bỏ xác nhận",
+            cancelLabel: "Giữ nguyên",
+            danger: true,
+          },
+    );
+    if (!ok) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await api(`/orders/${order.id}`, {
+        method: "PATCH",
+        body: {
+          paymentStatus,
+          ...(order.updatedAt && { expectedUpdatedAt: order.updatedAt }),
+        },
+      });
+      onSaved(res.data);
+      toast(
+        paymentStatus === "paid"
+          ? `Đã xác nhận thanh toán đơn ${order.code}`
+          : `Đã bỏ xác nhận thanh toán đơn ${order.code}`,
+      );
+    } catch (err) {
+      setError(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section
+      className={cn(
+        "rounded-2xl border p-5",
+        paid ? "border-emerald-200 bg-emerald-50/50" : "border-amber-200 bg-amber-50/50",
+      )}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="eyebrow flex items-center gap-1.5">
+          <Landmark className="size-3.5" aria-hidden="true" /> Thanh toán chuyển khoản
+        </h3>
+        <PaymentBadge order={order} />
+      </div>
+      <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <dt className="text-ink-muted text-xs">Số tiền cần nhận</dt>
+          <dd className="text-forest text-lg font-semibold tabular-nums">
+            {formatPrice(order.total)}
+          </dd>
+        </div>
+        {/* căn phải: 2 cột bám 2 mép khung (trái số tiền, phải nội dung) */}
+        <div className="text-right">
+          <dt className="text-ink-muted text-xs">Nội dung chuyển khoản</dt>
+          <dd className="text-forest text-lg font-semibold tracking-wider">{order.code}</dd>
+        </div>
+      </dl>
+      {paid ? (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <p className="flex items-center gap-1.5 text-sm font-semibold text-emerald-800">
+            <BadgeCheck className="size-4" aria-hidden="true" />
+            Đã nhận tiền{order.paidAt && ` lúc ${dateTime(order.paidAt)}`}
+          </p>
+          <button
+            type="button"
+            onClick={() => setPayment("unpaid")}
+            disabled={saving}
+            className="text-ink-muted hover:text-forest inline-flex items-center gap-1 text-xs font-semibold underline-offset-2 hover:underline disabled:opacity-50"
+          >
+            <Undo2 className="size-3.5" aria-hidden="true" /> Bỏ xác nhận
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* căn giữa + text-balance: các dòng dài đều nhau; số tiền / mã đơn không bị ngắt giữa chừng */}
+          <p className="text-ink-soft mt-4 text-center text-xs leading-relaxed text-balance">
+            Kiểm tra app ngân hàng đã nhận{" "}
+            <strong className="whitespace-nowrap">{formatPrice(order.total)}</strong> với nội dung{" "}
+            <strong className="whitespace-nowrap">{order.code}</strong>, rồi bấm xác nhận bên dưới.
+          </p>
+          <Button onClick={() => setPayment("paid")} loading={saving} className="mt-3 w-full">
+            <BadgeCheck className="size-4" aria-hidden="true" /> Xác nhận đã thanh toán
+          </Button>
+        </>
+      )}
+      <ErrorNote error={error} className="mt-3" />
+    </section>
+  );
+}
+
 // Thứ tự xử lý đơn (dùng để nhận ra thao tác "lùi trạng thái")
 const STEP_ORDER = ["pending", "confirmed", "shipping", "completed"];
 
@@ -215,6 +347,37 @@ function OrderDrawer({ order, onClose, onSaved, onDelete }) {
       }))
     )
       return;
+    // Đơn chuyển khoản: giao hàng khi CHƯA nhận tiền / hủy đơn ĐÃ nhận tiền (phải hoàn tiền) → hỏi lại
+    const unpaidShip =
+      isTransfer(order) &&
+      paymentStatusOf(order) !== "paid" &&
+      ["shipping", "completed"].includes(status) &&
+      status !== order.status;
+    const paidCancel =
+      isTransfer(order) &&
+      paymentStatusOf(order) === "paid" &&
+      status === "cancelled" &&
+      order.status !== "cancelled";
+    if (
+      (unpaidShip || paidCancel) &&
+      !(await confirm(
+        unpaidShip
+          ? {
+              title: "Đơn chuyển khoản chưa nhận tiền",
+              message: `Đơn ${order.code} chưa được xác nhận thanh toán. Vẫn chuyển sang “${ORDER_STATUS[status].label}”?`,
+              confirmLabel: "Vẫn chuyển",
+              cancelLabel: "Kiểm tra lại",
+            }
+          : {
+              title: `Hủy đơn đã thanh toán ${order.code}?`,
+              message: `Khách đã chuyển khoản ${formatPrice(order.total)} cho đơn này — nhớ hoàn tiền cho khách sau khi hủy.`,
+              confirmLabel: "Hủy đơn",
+              cancelLabel: "Giữ đơn",
+              danger: true,
+            },
+      ))
+    )
+      return;
     setSaving(true);
     setError(null);
     try {
@@ -242,8 +405,9 @@ function OrderDrawer({ order, onClose, onSaved, onDelete }) {
       onClose={requestClose}
       title={`Đơn ${order.code}`}
       subtitle={
-        <span className="text-ink-muted flex items-center gap-2 text-xs">
-          <StatusBadge status={order.status} /> Đặt lúc {dateTime(order.createdAt)}
+        <span className="text-ink-muted flex flex-wrap items-center gap-2 text-xs">
+          <StatusBadge status={order.status} /> <PaymentBadge order={order} /> Đặt lúc{" "}
+          {dateTime(order.createdAt)}
         </span>
       }
       footer={
@@ -265,6 +429,8 @@ function OrderDrawer({ order, onClose, onSaved, onDelete }) {
     >
       <div className="space-y-6">
         <ErrorNote error={error} />
+
+        {isTransfer(order) && <PaymentSection order={order} onSaved={onSaved} />}
 
         <section className="bg-pearl rounded-2xl p-5">
           <h3 className="eyebrow">Khách hàng</h3>
@@ -367,7 +533,7 @@ function OrderDrawer({ order, onClose, onSaved, onDelete }) {
               </dd>
             </div>
             <div className="text-forest flex justify-between pt-1 text-base font-semibold">
-              <dt>Tổng thu (COD)</dt>
+              <dt>{isTransfer(order) ? "Tổng tiền (chuyển khoản)" : "Tổng thu (COD)"}</dt>
               <dd className="tabular-nums">{formatPrice(order.total)}</dd>
             </div>
           </dl>
@@ -394,20 +560,45 @@ function OrderDrawer({ order, onClose, onSaved, onDelete }) {
           </label>
         </section>
 
-        {order.statusHistory?.length > 0 && (
-          <section className="px-1">
-            <h3 className="eyebrow">Lịch sử</h3>
-            <ol className="border-forest/15 mt-3 space-y-3 border-l pl-4">
-              {[...order.statusHistory].reverse().map((h, i) => (
-                <li key={i} className="relative text-sm">
-                  <span className="bg-sage-500 absolute top-1.5 -left-[21px] size-2.5 rounded-full ring-4 ring-[var(--color-linen)]" />
-                  <span className="text-forest font-semibold">{ORDER_STATUS[h.status]?.label}</span>
-                  <span className="text-ink-muted ml-2 text-xs">{dateTime(h.at)}</span>
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
+        {(() => {
+          // trạng thái đơn + xác nhận thanh toán, gộp thành 1 dòng thời gian (mới nhất trên cùng)
+          const events = [
+            ...(order.statusHistory ?? []).map((h) => ({
+              at: h.at,
+              label: ORDER_STATUS[h.status]?.label,
+              pay: false,
+            })),
+            ...(order.paymentHistory ?? []).map((h) => ({
+              at: h.at,
+              label: h.status === "paid" ? "Xác nhận đã thanh toán" : "Bỏ xác nhận thanh toán",
+              pay: true,
+            })),
+          ].sort((a, b) => new Date(b.at) - new Date(a.at));
+          if (!events.length) return null;
+          return (
+            <section className="px-1">
+              <h3 className="eyebrow">Lịch sử</h3>
+              <ol className="border-forest/15 mt-3 space-y-3 border-l pl-4">
+                {events.map((h, i) => (
+                  <li key={i} className="relative text-sm">
+                    <span
+                      className={cn(
+                        "absolute top-1.5 -left-[21px] size-2.5 rounded-full ring-4 ring-[var(--color-linen)]",
+                        h.pay ? "bg-emerald-500" : "bg-sage-500",
+                      )}
+                    />
+                    <span
+                      className={cn("font-semibold", h.pay ? "text-emerald-800" : "text-forest")}
+                    >
+                      {h.label}
+                    </span>
+                    <span className="text-ink-muted ml-2 text-xs">{dateTime(h.at)}</span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          );
+        })()}
       </div>
     </Drawer>
   );
@@ -458,25 +649,52 @@ export default function OrdersPage() {
           onChange={(status) => list.update({ status })}
           items={statusTabs(ORDER_STATUS, stats)}
         />
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
+          {/* lọc theo thanh toán — "Chuyển khoản – chờ nhận tiền" là danh sách cần đối chiếu sao kê */}
+          <Select
+            aria-label="Lọc theo thanh toán"
+            value={list.params.payment ?? ""}
+            onChange={(e) => list.update({ payment: e.target.value })}
+            options={PAYMENT_FILTERS.map((f) =>
+              f.value === "awaiting" && stats?.awaitingPayment
+                ? { ...f, label: `${f.label} (${stats.awaitingPayment})` }
+                : f,
+            )}
+            className="w-full py-2 sm:w-auto lg:w-60"
+          />
           <SearchBox
-            key={list.ready ? "ready" : "init"}
+            key={list.searchKey}
             defaultValue={list.params.q ?? ""}
             placeholder="Mã đơn, SĐT, tên khách…"
             onSearch={(q) => list.update({ q })}
             className="min-w-0 flex-1 lg:w-72 lg:flex-none"
           />
-          {/* tải lại danh sách + số trên tab lọc / menu bên trái */}
+          {/* làm mới: bỏ hết bộ lọc + tìm kiếm, tải lại danh sách + số trên tab lọc / menu bên trái */}
           <RefreshButton
             loading={list.loading}
             error={list.error}
             onClick={() => {
-              list.reload();
+              list.refresh();
               reloadStats();
             }}
           />
         </div>
       </div>
+
+      {/* nhắc việc: có đơn chuyển khoản đang chờ đối chiếu → bấm để lọc ra */}
+      {stats?.awaitingPayment > 0 && list.params.payment !== "awaiting" && (
+        <button
+          type="button"
+          onClick={() => list.update({ payment: "awaiting" })}
+          className="mt-4 flex w-full items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-left text-sm text-amber-900 transition-colors hover:bg-amber-100"
+        >
+          <Landmark className="size-4 shrink-0" aria-hidden="true" />
+          <span>
+            <strong>{stats.awaitingPayment} đơn chuyển khoản</strong> đang chờ xác nhận nhận tiền —
+            bấm để xem và đối chiếu sao kê.
+          </span>
+        </button>
+      )}
 
       <ErrorNote error={list.error} className="mt-4" />
 
@@ -574,6 +792,9 @@ export default function OrdersPage() {
                     className={cn(tdc, "text-forest font-semibold whitespace-nowrap tabular-nums")}
                   >
                     {formatPrice(o.total)}
+                    <span className="mt-1 block">
+                      <PaymentBadge order={o} />
+                    </span>
                   </td>
                   <td className={tdc}>
                     <StatusBadge status={o.status} />

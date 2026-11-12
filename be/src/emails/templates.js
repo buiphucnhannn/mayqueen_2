@@ -1,4 +1,4 @@
-import { packText } from "../utils/pack.js";
+import { isComboNote, packSummary, packText } from "../utils/pack.js";
 /**
  * Mẫu email thông báo cho admin — đơn hàng mới & yêu cầu tư vấn mới.
  *
@@ -121,8 +121,32 @@ const noteBox = (note) =>
   `<div style="margin-top:6px;padding:14px 16px;border-radius:12px;background:${C.sage50};border-left:3px solid ${C.sage};font-family:${SANS};font-size:14px;line-height:1.6;color:${C.inkSoft};white-space:pre-line;">${esc(note)}</div>`;
 
 /** Email "Đơn hàng mới" */
-export function orderEmail(order, { siteUrl = "" } = {}) {
+export function orderEmail(order, { siteUrl = "", units = {} } = {}) {
   const c = order.customer ?? {};
+  // "Tổng cần chuẩn bị cho đơn này" — giống ngăn chi tiết đơn trong Admin (OrdersPage.jsx), đặt ngay dưới danh sách
+  // sản phẩm, TRƯỚC Tạm tính / Phí vận chuyển / Tổng cộng: gộp combo + hàng lẻ
+  // thành tổng từng sản phẩm; chỉ hiện khi đơn có combo hoặc từ 2 dòng (đơn 1 món lẻ thì dòng "Cần chuẩn bị" đã đủ)
+  const summary =
+    (order.lines.length > 1 || order.lines.some((l) => isComboNote(l.optionNote))) &&
+    packSummary(order.lines, units);
+  const summaryHtml = summary?.length
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;background:${C.sage50};border:1px solid ${C.sageSoft};border-radius:12px;">
+        <tr><td style="padding:14px 16px 6px;font-family:${SANS};font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${C.forest};">Tổng cần chuẩn bị cho đơn này</td></tr>
+        ${summary
+          .map(
+            (s) => `<tr><td style="padding:0 16px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+                <td style="padding:5px 0;font-family:${SANS};font-size:14px;color:${C.ink};">${esc(s.name)}</td>
+                <td align="right" style="padding:5px 0;${NUM}font-size:16px;font-weight:700;color:${C.forest};white-space:nowrap;">${s.count} ${esc(s.unit)}</td>
+              </tr></table>
+            </td></tr>`,
+          )
+          .join("")}
+        <tr><td style="height:10px;line-height:10px;font-size:0;">&nbsp;</td></tr>
+      </table>`
+    : "";
+  const transfer = order.paymentMethod === "bank_transfer";
+  const payLabel = transfer ? "Chuyển khoản ngân hàng (VietQR)" : "Thanh toán khi nhận hàng (COD)";
   const adminLink = siteUrl ? `${siteUrl}/admin/don-hang?q=${encodeURIComponent(order.code)}` : "";
   const items = order.lines
     .map(
@@ -145,7 +169,7 @@ export function orderEmail(order, { siteUrl = "" } = {}) {
 
   const body = `
     ${h1(`Đơn hàng mới <span style="${NUM}font-size:24px;font-weight:700;letter-spacing:1px;color:${C.sage};">${esc(order.code)}</span>`)}
-    <p style="margin:8px 0 0;text-align:center;font-family:${SANS};font-size:13px;line-height:1.5;color:${C.muted};">Đặt lúc ${when(order.createdAt)} · Thanh toán khi nhận hàng (COD)</p>
+    <p style="margin:8px 0 0;text-align:center;font-family:${SANS};font-size:13px;line-height:1.5;color:${C.muted};">Đặt lúc ${when(order.createdAt)} · ${payLabel}</p>
 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:22px;background:${C.linen};border-radius:14px;">
       <tr><td align="center" style="padding:18px 18px 20px;text-align:center;">
@@ -160,6 +184,13 @@ export function orderEmail(order, { siteUrl = "" } = {}) {
       ${row("Điện thoại", phoneLink(c.phone))}
       ${row("Địa chỉ", esc([c.address, c.province].filter(Boolean).join(", ")))}
       ${order.lang === "en" ? row("Ngôn ngữ", EN_PILL) : ""}
+      ${row(
+        "Thanh toán",
+        transfer
+          ? pill("Chuyển khoản — chờ nhận tiền", C.amber, C.amberBg)
+          : pill("COD — thu khi giao", C.forest, C.sage50),
+      )}
+      ${transfer ? row("Nội dung CK", `<strong style="${NUM}font-weight:700;letter-spacing:1px;">${esc(order.code)}</strong>`) : ""}
     </table>
     ${order.adminNote ? `${sectionTitle("Lưu ý")}${noteBox(order.adminNote)}` : ""}
     ${c.note ? `${sectionTitle("Ghi chú của khách")}${noteBox(c.note)}` : ""}
@@ -167,17 +198,27 @@ export function orderEmail(order, { siteUrl = "" } = {}) {
     ${sectionTitle("Sản phẩm")}
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
       ${items}
+    </table>
+    ${summaryHtml}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:${summaryHtml ? "10px" : "0"};">
       ${money("Tạm tính", vnd(order.subtotal))}
       ${money("Phí vận chuyển", order.shippingFee ? vnd(order.shippingFee) : `<span style="color:${C.sage};font-weight:700;">Miễn phí</span>`)}
       ${money("Tổng cộng", vnd(order.total), true)}
     </table>
 
     ${adminLink ? button(adminLink, "Mở đơn trong trang quản trị") : ""}
-    <p style="margin:14px auto 0;max-width:460px;text-align:center;font-family:${SANS};font-size:12.5px;line-height:1.6;color:${C.muted};">Gọi xác nhận với khách trong giờ&nbsp;làm&nbsp;việc,<br>sau đó chuyển trạng thái đơn trong trang quản&nbsp;trị.</p>`;
+    <p style="margin:14px auto 0;max-width:460px;text-align:center;font-family:${SANS};font-size:12.5px;line-height:1.6;color:${C.muted};">${
+      transfer
+        ? `Đối chiếu sao kê: khoản ${vnd(order.total)} với nội dung <strong>${esc(order.code)}</strong>,<br>rồi bấm “Xác nhận đã thanh toán” trong trang quản&nbsp;trị.`
+        : "Gọi xác nhận với khách trong giờ&nbsp;làm&nbsp;việc,<br>sau đó chuyển trạng thái đơn trong trang quản&nbsp;trị."
+    }</p>`;
 
   const text = [
     `ĐƠN HÀNG MỚI ${order.code} — ${vnd(order.total)}`,
-    `Đặt lúc: ${when(order.createdAt)} · Thanh toán khi nhận hàng (COD)`,
+    `Đặt lúc: ${when(order.createdAt)} · ${payLabel}`,
+    transfer
+      ? `Chuyển khoản: CHỜ NHẬN TIỀN — đối chiếu sao kê khoản ${vnd(order.total)} nội dung "${order.code}" rồi bấm "Xác nhận đã thanh toán".`
+      : null,
     "",
     `Khách hàng: ${c.name}`,
     `Điện thoại: ${prettyPhone(c.phone)}`,
@@ -191,6 +232,14 @@ export function orderEmail(order, { siteUrl = "" } = {}) {
       (l) =>
         `- ${l.name}${l.optionLabel ? ` (${l.optionLabel})` : ""} [cần chuẩn bị: ${packText(l)}]: ${l.qty} × ${vnd(l.price)} = ${vnd(l.lineTotal)}`,
     ),
+    ...(summary?.length
+      ? [
+          "",
+          "TỔNG CẦN CHUẨN BỊ CHO ĐƠN NÀY:",
+          ...summary.map((s) => `- ${s.name}: ${s.count}${s.unit ? ` ${s.unit}` : ""}`),
+          "",
+        ]
+      : []),
     `Tạm tính: ${vnd(order.subtotal)}`,
     `Phí vận chuyển: ${order.shippingFee ? vnd(order.shippingFee) : "Miễn phí"}`,
     `TỔNG CỘNG: ${vnd(order.total)}`,
@@ -200,7 +249,7 @@ export function orderEmail(order, { siteUrl = "" } = {}) {
     .join("\n");
 
   return {
-    subject: `[Mayqueen] Đơn hàng mới ${order.code} – ${vnd(order.total)} – ${c.name}`,
+    subject: `[Mayqueen] Đơn hàng mới ${order.code} – ${vnd(order.total)}${transfer ? " (chuyển khoản)" : ""} – ${c.name}`,
     html: layout({
       siteUrl,
       preheader: `${c.name} · ${prettyPhone(c.phone)} · ${vnd(order.total)}`,

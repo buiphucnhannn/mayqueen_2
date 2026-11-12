@@ -73,7 +73,8 @@ export default function ConsentCheckbox({
       href={to}
       target="_blank"
       rel="noopener"
-      className="text-sage-700 hover:text-forest focus-visible:text-forest font-semibold transition-colors"
+      // nowrap: tên chính sách không bị ngắt giữa chừng ("Chính sách đổi / trả") — cả cụm xuống dòng cùng nhau
+      className="text-sage-700 hover:text-forest focus-visible:text-forest font-semibold whitespace-nowrap transition-colors"
     >
       {text}
       <span className="sr-only"> {c.newTab}</span>
@@ -100,7 +101,8 @@ export default function ConsentCheckbox({
         {/* label bọc chữ (không bọc link): bấm vào chữ = tick, bấm vào link = mở chính sách */}
         <p
           className={cn(
-            "text-sm leading-relaxed transition-colors lg:text-[15.5px]",
+            // text-pretty: tránh dòng cuối chỉ còn 1 chữ lẻ loi
+            "text-sm leading-relaxed text-pretty transition-colors lg:text-[15.5px]",
             error && compact ? "text-red-600" : "text-ink-soft",
           )}
         >
@@ -120,9 +122,9 @@ export default function ConsentCheckbox({
           <label htmlFor={id} className="cursor-pointer">
             {c.purpose[purpose]}
           </label>
+          {/* khoảng trắng không ngắt dòng: dấu * luôn đi liền chữ cuối, không rơi xuống dòng một mình */}
           <span className="text-sage-600" aria-hidden="true">
-            {" "}
-            *
+            {" *"}
           </span>
         </p>
       </div>

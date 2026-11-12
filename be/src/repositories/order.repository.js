@@ -12,23 +12,45 @@ class OrderRepository extends BaseRepository {
 
   /** Đơn đã tạo từ cùng 1 lần bấm "Đặt hàng" (gửi lại sau lỗi mạng) */
   findByIdempotencyKey(idempotencyKey) {
-    return this.model.findOne({ idempotencyKey }).select("code total").lean();
+    return this.model
+      .findOne({ idempotencyKey })
+      .select("code total paymentMethod paymentStatus")
+      .lean();
+  }
+
+  /** Số đơn chuyển khoản đang chờ nhận tiền (không tính đơn đã hủy) */
+  countAwaitingPayment() {
+    return this.model.countDocuments({
+      paymentMethod: "bank_transfer",
+      paymentStatus: { $ne: "paid" },
+      status: { $ne: "cancelled" },
+    });
   }
 
   codeExists(code) {
     return this.model.exists({ code });
   }
 
-  /** Cập nhật trạng thái / ghi chú; đổi trạng thái thì ghi thêm 1 dòng vào statusHistory */
-  async updateAdmin(id, { status, adminNote }) {
-    const current = await this.model.findById(id).select("status").lean();
+  /**
+   * Cập nhật trạng thái / ghi chú / trạng thái thanh toán.
+   * Đổi trạng thái → thêm 1 dòng statusHistory; xác nhận / bỏ xác nhận thanh toán → thêm 1 dòng paymentHistory.
+   */
+  async updateAdmin(id, { status, adminNote, paymentStatus }) {
+    const current = await this.model.findById(id).select("status paymentStatus").lean();
     if (!current) return null;
-    const update = { $set: {} };
+    const now = new Date();
+    const update = { $set: {}, $push: {} };
     if (adminNote !== undefined) update.$set.adminNote = adminNote;
     if (status && status !== current.status) {
       update.$set.status = status;
-      update.$push = { statusHistory: { status, at: new Date() } };
+      update.$push.statusHistory = { status, at: now };
     }
+    if (paymentStatus && paymentStatus !== (current.paymentStatus ?? "unpaid")) {
+      update.$set.paymentStatus = paymentStatus;
+      update.$set.paidAt = paymentStatus === "paid" ? now : null;
+      update.$push.paymentHistory = { status: paymentStatus, at: now };
+    }
+    if (!Object.keys(update.$push).length) delete update.$push;
     return this.model
       .findByIdAndUpdate(id, update, { returnDocument: "after", runValidators: true })
       .lean();

@@ -40,6 +40,7 @@ export const orderController = {
       id: order.id,
       code: order.code,
       status: req.validated.body.status,
+      paymentStatus: req.validated.body.paymentStatus, // ai xác nhận đã nhận tiền, lúc nào (đối soát)
       noteChanged: req.validated.body.adminNote !== undefined,
     });
     ok(res, order);

@@ -3,11 +3,13 @@ import { env } from "../config/env.js";
 import { orderRepository } from "../repositories/order.repository.js";
 import { productRepository } from "../repositories/product.repository.js";
 import { notifyService } from "./notify.service.js";
+import { PAYMENT, bankTransferInfo, isPaid, shippingFeeFor } from "./payment.service.js";
 import { ApiError } from "../utils/ApiError.js";
 import { buildPageMeta } from "../utils/pagination.js";
 import { searchRegex } from "../utils/search.js";
 import { assertNotStale } from "../utils/stale.js";
 import { toDTO } from "../utils/serialize.js";
+import { unitsFromProducts } from "../utils/pack.js";
 
 /** Mã đơn ngắn, dễ đọc qua điện thoại: MQ + 6 ký tự (bỏ 0/O/1/I dễ nhầm) */
 const ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
@@ -25,6 +27,20 @@ async function uniqueCode() {
 }
 
 const pick = (localized, lang) => localized?.[lang] || localized?.vi || "";
+
+/** Kết quả trả khách sau khi đặt (cả khi gửi lại trùng): mã đơn, tổng, hình thức + thông tin chuyển khoản */
+const placedResult = (order, extra = {}) => ({
+  orderId: order.code,
+  total: order.total,
+  paymentMethod: order.paymentMethod ?? PAYMENT.COD,
+  paymentStatus: order.paymentStatus ?? "unpaid",
+  payment: bankTransferInfo(order),
+  ...extra,
+});
+
+/** Đơn chuyển khoản còn cần khách trả tiền → hiện lại QR khi khách tra cứu */
+const awaitingTransfer = (order) =>
+  order.paymentMethod === PAYMENT.BANK && !isPaid(order) && order.status !== "cancelled";
 
 /**
  * Đơn đặt TRƯỚC khi có trường optionNote (thành phần gói) → lấy từ gói hiện tại của sản phẩm để hiển thị
@@ -51,12 +67,14 @@ async function withOptionNotes(orders) {
 export const orderService = {
   /**
    * Tạo đơn: GIÁ LUÔN TÍNH LẠI từ DB (không tin giá gửi từ trình duyệt),
-   * gộp các dòng trùng sản phẩm + gói, áp phí ship theo ngưỡng freeship.
+   * gộp các dòng trùng sản phẩm + gói, áp phí ship theo hình thức thanh toán
+   * (chuyển khoản trước → miễn phí vận chuyển; COD → miễn phí khi đủ ngưỡng).
    */
   async create({
     customer,
     items,
     lang,
+    paymentMethod = PAYMENT.COD,
     consent,
     idempotencyKey,
     expectedTotal,
@@ -65,8 +83,15 @@ export const orderService = {
     // Gửi lại cùng 1 lần đặt (mạng chập chờn: đơn đã lưu nhưng khách không nhận được phản hồi) → trả đơn cũ
     if (idempotencyKey) {
       const existing = await orderRepository.findByIdempotencyKey(idempotencyKey);
-      if (existing) return { orderId: existing.code, total: existing.total, duplicate: true };
+      if (existing) return placedResult(existing, { duplicate: true });
     }
+
+    // Chưa cấu hình tài khoản nhận tiền (BANK_ACCOUNT_NO rỗng) → không nhận đơn chuyển khoản
+    if (paymentMethod === PAYMENT.BANK && !env.bank.enabled)
+      throw new ApiError(422, "Hình thức chuyển khoản tạm thời chưa hỗ trợ", {
+        code: "PAYMENT_METHOD_UNAVAILABLE",
+        details: [{ field: "body.paymentMethod" }],
+      });
 
     const products = await productRepository.findActiveBySlugs([
       ...new Set(items.map((i) => i.slug)),
@@ -105,7 +130,7 @@ export const orderService = {
 
     const lines = [...merged.values()];
     const subtotal = lines.reduce((s, l) => s + l.lineTotal, 0);
-    const shippingFee = subtotal >= env.order.freeShipThreshold ? 0 : env.order.shippingFee;
+    const shippingFee = shippingFeeFor(subtotal, paymentMethod);
     const total = subtotal + shippingFee;
 
     // Giá vừa đổi (admin sửa giá khi khách đang ở trang thanh toán) → KHÔNG tự tạo đơn với số tiền khác số khách
@@ -125,7 +150,7 @@ export const orderService = {
         subtotal,
         shippingFee,
         total,
-        paymentMethod: "cod",
+        paymentMethod,
         lang,
         ...(consent && { consent }),
         ...(idempotencyKey && { idempotencyKey }),
@@ -137,13 +162,20 @@ export const orderService = {
       // 2 lần gửi cùng mã chạy song song → lần sau trùng index → trả đơn của lần trước
       if (err?.code === 11000 && idempotencyKey && err.keyPattern?.idempotencyKey) {
         const existing = await orderRepository.findByIdempotencyKey(idempotencyKey);
-        if (existing) return { orderId: existing.code, total: existing.total, duplicate: true };
+        if (existing) return placedResult(existing, { duplicate: true });
       }
       throw err;
     }
 
-    notifyService.newOrder(order.toObject ? order.toObject() : order); // email cho admin (chạy nền)
-    return { orderId: order.code, total: order.total };
+    const saved = order.toObject ? order.toObject() : order;
+    // Email cho admin (chạy nền, không làm chậm khách): kèm đơn vị kho để in "Tổng cần chuẩn bị" (lọ / hộp).
+    // Đọc sản phẩm lỗi → vẫn gửi email, tổng kết chỉ thiếu chữ đơn vị.
+    productRepository
+      .findPackUnitsSource()
+      .then(unitsFromProducts)
+      .catch(() => ({}))
+      .then((units) => notifyService.newOrder(saved, { units }));
+    return placedResult(saved);
   },
 
   /** Khách tra cứu đơn bằng mã + SĐT (không lộ đơn của người khác) */
@@ -152,24 +184,53 @@ export const orderService = {
     if (!order || order.customer.phone !== phone) throw ApiError.notFound("Order not found");
     await withOptionNotes(order);
     const { code: orderId, status, lines, subtotal, shippingFee, total, createdAt } = order;
-    return { orderId, status, lines, subtotal, shippingFee, total, createdAt };
+    return {
+      orderId,
+      status,
+      lines,
+      subtotal,
+      shippingFee,
+      total,
+      createdAt,
+      paymentMethod: order.paymentMethod ?? PAYMENT.COD,
+      paymentStatus: order.paymentStatus ?? "unpaid",
+      // chỉ gửi QR / số tài khoản khi khách còn phải chuyển khoản
+      payment: awaitingTransfer(order) ? bankTransferInfo(order) : null,
+    };
   },
 
-  async list({ status, q }, pagination) {
+  async list({ status, q, payment }, pagination) {
     const rx = q && searchRegex(q);
-    const filter = {
-      ...(status && { status }),
-      ...(rx && { $or: [{ code: rx }, { "customer.phone": rx }, { "customer.name": rx }] }),
-    };
+    const paymentFilter = {
+      cod: { paymentMethod: PAYMENT.COD },
+      bank_transfer: { paymentMethod: PAYMENT.BANK },
+      // khớp con số "chờ nhận tiền" ở stats(): không tính đơn đã hủy
+      awaiting: {
+        paymentMethod: PAYMENT.BANK,
+        paymentStatus: { $ne: "paid" },
+        status: { $ne: "cancelled" },
+      },
+      paid: { paymentStatus: "paid" },
+    }[payment];
+    // $and: điều kiện trạng thái của bộ lọc thanh toán không ghi đè tab trạng thái đang chọn
+    const conds = [
+      status && { status },
+      paymentFilter,
+      rx && { $or: [{ code: rx }, { "customer.phone": rx }, { "customer.name": rx }] },
+    ].filter(Boolean);
+    const filter = conds.length ? { $and: conds } : {};
     const { items, total } = await orderRepository.paginate(filter, pagination);
     return { items: toDTO(await withOptionNotes(items)), meta: buildPageMeta(pagination, total) };
   },
 
   /** Số đơn theo trạng thái (tab lọc + tổng quan) */
   async stats() {
-    const byStatus = await orderRepository.countBy("status");
+    const [byStatus, awaitingPayment] = await Promise.all([
+      orderRepository.countBy("status"),
+      orderRepository.countAwaitingPayment(),
+    ]);
     const total = Object.values(byStatus).reduce((s, n) => s + n, 0);
-    return { total, byStatus };
+    return { total, byStatus, awaitingPayment };
   },
 
   async getById(id) {
@@ -179,10 +240,15 @@ export const orderService = {
   },
 
   async update(id, { expectedUpdatedAt, ...changes }) {
-    if (expectedUpdatedAt) {
+    if (expectedUpdatedAt || changes.paymentStatus) {
       const current = await orderRepository.findById(id);
       if (!current) throw ApiError.notFound("Order not found");
-      assertNotStale(current, expectedUpdatedAt);
+      if (expectedUpdatedAt) assertNotStale(current, expectedUpdatedAt);
+      // COD thu tiền khi giao (qua đơn vị vận chuyển) → chỉ đơn chuyển khoản mới xác nhận nhận tiền ở đây
+      if (changes.paymentStatus && current.paymentMethod !== PAYMENT.BANK)
+        throw new ApiError(422, "Chỉ xác nhận thanh toán cho đơn chuyển khoản", {
+          code: "NOT_BANK_TRANSFER",
+        });
     }
     const order = await orderRepository.updateAdmin(id, changes);
     if (!order) throw ApiError.notFound("Order not found");

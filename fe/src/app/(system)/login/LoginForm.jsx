@@ -12,6 +12,7 @@ import {
   Loader2,
   Lock,
   User,
+  Zap,
 } from "lucide-react";
 import { ApiError, api } from "@/lib/api";
 import { safeNext } from "@/lib/safe-next";
@@ -58,6 +59,37 @@ export default function LoginForm() {
   const [error, setError] = useState("");
   const [capsLock, setCapsLock] = useState(false);
   const expired = params.get("het-phien") === "1";
+  // Nút "Đăng nhập nhanh (demo)": chỉ hiện khi backend bật DEMO_LOGIN=true (hỏi GET /auth/demo).
+  // Không lưu mật khẩu ở trình duyệt — backend tự tạo phiên admin; tắt biến là API cũng bị khóa.
+  const [demo, setDemo] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    api("/auth/demo", { retry: false })
+      .then((r) => alive && setDemo(Boolean(r.data?.enabled)))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const demoLogin = async () => {
+    if (status === "sending") return;
+    setStatus("sending");
+    setError("");
+    try {
+      await api("/auth/demo", { method: "POST", retry: false });
+      setStatus("done");
+      router.replace(safeNext(params.get("next")));
+      router.refresh();
+    } catch (err) {
+      setStatus("idle");
+      // vừa tắt DEMO_LOGIN trên máy chủ → ẩn nút luôn
+      if (err instanceof ApiError && err.status === 404) {
+        setDemo(false);
+        setError("Đăng nhập nhanh đã tắt. Vui lòng đăng nhập bằng tài khoản.");
+      } else setError(messageFor(err));
+    }
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -226,6 +258,28 @@ export default function LoginForm() {
           </span>
         </button>
       </div>
+
+      {demo && (
+        <div className="space-y-3">
+          <div className="text-ink-muted flex items-center gap-3 text-xs">
+            <span className="bg-forest/10 h-px flex-1" />
+            hoặc
+            <span className="bg-forest/10 h-px flex-1" />
+          </div>
+          <button
+            type="button"
+            onClick={demoLogin}
+            disabled={busy}
+            className="border-forest/20 text-forest hover:border-forest hover:bg-sage-50 focus-visible:outline-sage-500 flex h-12 w-full items-center justify-center gap-2 rounded-full border bg-white text-xs font-semibold tracking-[0.14em] uppercase transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-60"
+          >
+            <Zap className="size-4 text-amber-600" aria-hidden="true" />
+            Đăng nhập nhanh (demo)
+          </button>
+          <p className="text-ink-muted text-center text-xs">
+            Chỉ dành cho thử nghiệm, vào thẳng trang quản trị không cần mật khẩu.
+          </p>
+        </div>
+      )}
     </form>
   );
 }

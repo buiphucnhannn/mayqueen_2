@@ -96,7 +96,7 @@ export default function ArticlesPage() {
           />
           <div className="flex items-center gap-2">
             <SearchBox
-              key={list.ready ? "ready" : "init"}
+              key={list.searchKey}
               defaultValue={list.params.q ?? ""}
               placeholder="Tiêu đề, đường dẫn…"
               onSearch={(q) => list.update({ q })}
@@ -106,7 +106,7 @@ export default function ArticlesPage() {
               loading={list.loading}
               error={list.error}
               onClick={() => {
-                list.reload();
+                list.refresh();
                 cats.reload();
               }}
             />

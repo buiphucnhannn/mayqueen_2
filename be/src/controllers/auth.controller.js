@@ -1,3 +1,4 @@
+import { env } from "../config/env.js";
 import { audit } from "../config/logger.js";
 import { authService } from "../services/auth.service.js";
 import { REFRESH_COOKIE, clearAuthCookies, setAuthCookies } from "../utils/auth-cookies.js";
@@ -25,6 +26,20 @@ export const authController = {
     const { user, accessToken, refreshToken, remember } = session;
     req.user = user;
     audit(req, "auth.login", { userAgent: req.get("user-agent") });
+    setAuthCookies(res, { accessToken, refreshToken, remember });
+    ok(res, { user });
+  },
+
+  /** Trang đăng nhập hỏi: có hiện nút "Đăng nhập nhanh (demo)" không */
+  demoStatus(_req, res) {
+    ok(res, { enabled: env.demoLogin });
+  },
+
+  /** Đăng nhập nhanh (demo) — DEMO_LOGIN=true mới dùng được (tắt → 404) */
+  async demoLogin(req, res) {
+    const { user, accessToken, refreshToken, remember } = await authService.demoLogin(meta(req));
+    req.user = user;
+    audit(req, "auth.login_demo", { userAgent: req.get("user-agent") }, "warn"); // để thấy rõ trong log
     setAuthCookies(res, { accessToken, refreshToken, remember });
     ok(res, { user });
   },

@@ -60,6 +60,20 @@ export const authService = {
     return session;
   },
 
+  /**
+   * Đăng nhập nhanh (demo) — vào thẳng tài khoản admin, không cần mật khẩu. CHỈ khi DEMO_LOGIN=true.
+   * Phiên ngắn (không "ghi nhớ"), tạo y như đăng nhập thường → đăng xuất / hết hạn / đổi mật khẩu đều áp dụng.
+   */
+  async demoLogin(meta) {
+    if (!env.demoLogin) throw ApiError.notFound("Not found");
+    if (!adminConfigured())
+      throw ApiError.unavailable("Tài khoản quản trị chưa được cấu hình", "ADMIN_NOT_CONFIGURED");
+    const user = adminUser();
+    const session = await issueSession(user, meta, false);
+    await sessionRepository.revokeOldest(user.id, env.maxSessions);
+    return session;
+  },
+
   /** Xoay vòng refresh token: mỗi lần làm mới cấp token mới, token cũ bị thu hồi */
   async refresh(refreshToken, meta) {
     const payload = verifyRefreshToken(refreshToken);

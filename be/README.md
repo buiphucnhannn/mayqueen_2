@@ -76,6 +76,8 @@ Route **admin** cần đăng nhập (cookie HttpOnly do `/auth/login` cấp). M�
 | GET    | `/health`                               | public   | Trạng thái server, DB, Cloudinary                                                    |
 | GET    | `/slugs`                                | public   | Slug sản phẩm / bài viết đang hiển thị (proxy Next dùng)                             |
 | POST   | `/auth/login`                           | public   | Đăng nhập `{ username, password }` → set cookie                                      |
+| GET    | `/auth/demo`                            | public   | `{ enabled }` — trang đăng nhập có hiện nút "Đăng nhập nhanh (demo)" không           |
+| POST   | `/auth/demo`                            | public   | Đăng nhập nhanh không mật khẩu — CHỈ khi `DEMO_LOGIN=true` (tắt → 404)               |
 | POST   | `/auth/refresh`                         | public   | Làm mới phiên (xoay vòng refresh token)                                              |
 | GET    | `/auth/resume?next=`                    | public   | Làm mới rồi 303 về trang cũ (proxy Next dùng)                                        |
 | POST   | `/auth/logout`                          | admin    | Đăng xuất, thu hồi phiên                                                             |
@@ -100,12 +102,12 @@ Route **admin** cần đăng nhập (cookie HttpOnly do `/auth/login` cấp). M�
 | POST   | `/categories`                           | admin    | Tạo danh mục `{ type, name }` (slug tự sinh, cố định)                                |
 | PATCH  | `/categories/:id`                       | admin    | Đổi tên `{ name }` / thứ tự `{ sortOrder }`                                          |
 | DELETE | `/categories/:id`                       | admin    | Xoá (chỉ khi chưa có sản phẩm / bài viết nào)                                        |
-| POST   | `/orders`                               | public   | Đặt hàng (COD) — giá tính lại ở server                                               |
+| POST   | `/orders`                               | public   | Đặt hàng `paymentMethod`: `cod` / `bank_transfer` — giá + phí ship tính lại ở server |
 | GET    | `/orders/track/:code?phone=`            | public   | Khách tra cứu đơn bằng mã + SĐT                                                      |
-| GET    | `/orders?status=&q=&page=`              | admin    | Danh sách đơn (q: mã đơn / SĐT / tên)                                                |
-| GET    | `/orders/stats`                         | admin    | Số đơn theo trạng thái                                                               |
+| GET    | `/orders?status=&payment=&q=&page=`     | admin    | Danh sách đơn (q: mã đơn / SĐT / tên; payment: cod, bank_transfer, awaiting, paid)   |
+| GET    | `/orders/stats`                         | admin    | Số đơn theo trạng thái + `awaitingPayment` (chuyển khoản chờ nhận tiền)              |
 | GET    | `/orders/:id`                           | admin    | Chi tiết đơn                                                                         |
-| PATCH  | `/orders/:id`                           | admin    | Đổi trạng thái `{ status }` và/hoặc ghi chú `{ adminNote }`                          |
+| PATCH  | `/orders/:id`                           | admin    | Đổi `{ status }`, ghi chú `{ adminNote }`, xác nhận tiền `{ paymentStatus: "paid" }` |
 | POST   | `/leads`                                | public   | Đăng ký tư vấn (chống gửi trùng 10 phút / SĐT)                                       |
 | GET    | `/leads?status=&q=&page=`               | admin    | Danh sách đăng ký tư vấn                                                             |
 | GET    | `/leads/stats`                          | admin    | Số yêu cầu theo trạng thái                                                           |
@@ -121,10 +123,20 @@ POST /api/v1/orders
 {
   "customer": { "name": "Nguyễn A", "phone": "0912345678", "address": "12 Trần Phú, Hà Đông" },
   "items": [{ "slug": "mayqueen-slim", "optionId": "3", "qty": 1 }],
+  "paymentMethod": "bank_transfer",
   "lang": "vi"
 }
-→ 201 { "success": true, "data": { "orderId": "MQ7K3P9X", "total": 1190000 } }
+→ 201 { "success": true, "data": { "orderId": "MQ7K3P9X", "total": 1190000, "paymentMethod": "bank_transfer",
+         "paymentStatus": "unpaid", "payment": { "bankName", "accountNo", "accountName", "amount", "content": "MQ7K3P9X", "qr": "000201…" } } }
 ```
+
+### Thanh toán chuyển khoản (VietQR)
+
+- Khách chọn **Chuyển khoản ngân hàng** → đơn được **miễn phí vận chuyển** (`shippingFeeFor` ở `services/payment.service.js`).
+- Server dựng chuỗi **VietQR động** (chuẩn EMVCo/NAPAS: ngân hàng + STK + số tiền + nội dung = mã đơn, có CRC16) — không gọi dịch vụ ngoài. Frontend chỉ vẽ chuỗi thành ảnh QR; khách quét bằng app ngân hàng bất kỳ là mọi thông tin tự điền.
+- Tài khoản nhận: biến `BANK_BIN`, `BANK_NAME`, `BANK_ACCOUNT_NO`, `BANK_ACCOUNT_NAME` (mặc định tài khoản công ty, xem `.env.example`). `BANK_ACCOUNT_NO` rỗng → tắt chuyển khoản.
+- Admin đối chiếu sao kê (số tiền + nội dung = mã đơn) rồi bấm **Xác nhận đã thanh toán** → lưu `paymentStatus: "paid"`, `paidAt`, ghi `paymentHistory` + audit log `order.update`.
+- Khách tra cứu đơn còn chờ thanh toán sẽ thấy lại mã QR.
 
 ## Log
 

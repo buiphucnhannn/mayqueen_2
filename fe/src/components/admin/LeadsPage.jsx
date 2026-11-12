@@ -273,18 +273,18 @@ export default function LeadsPage() {
         />
         <div className="flex items-center gap-2">
           <SearchBox
-            key={list.ready ? "ready" : "init"}
+            key={list.searchKey}
             defaultValue={list.params.q ?? ""}
             placeholder="Tên, SĐT…"
             onSearch={(q) => list.update({ q })}
             className="min-w-0 flex-1 lg:w-72 lg:flex-none"
           />
-          {/* tải lại danh sách + số trên tab lọc / menu bên trái */}
+          {/* làm mới: bỏ hết bộ lọc + tìm kiếm, tải lại danh sách + số trên tab lọc / menu bên trái */}
           <RefreshButton
             loading={list.loading}
             error={list.error}
             onClick={() => {
-              list.reload();
+              list.refresh();
               reloadStats();
             }}
           />

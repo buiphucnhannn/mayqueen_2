@@ -3,7 +3,7 @@
  * (30 viên, 20 gói × 2 g là thông tin cho khách, không phải thứ cần lấy).
  * - Combo (ghi chú dạng "2 Mayqueen Slim + 2 Yodetox Extra") × SL → nhân từng món: "4 Mayqueen Slim + 4 Yodetox Extra"
  * - Sản phẩm lẻ: lấy số + đơn vị ở cuối tên gói ("1 lọ", "Combo 1 - 2 lọ", "1 hộp") × SL → "2 lọ Mayqueen Slim"
- * Giữ ĐỒNG BỘ với be/src/utils/pack.js (email báo đơn).
+ * Giữ ĐỒNG BỘ với be/src/utils/pack.js (email báo đơn) — cả packText, unitsFromProducts, packSummary.
  */
 export const isComboNote = (note) => (note ?? "").includes("+");
 
@@ -17,6 +17,20 @@ export function packText({ name = "", optionLabel = "", optionNote = "", qty = 1
   const unit = optionLabel.match(/(\d+)\s+([^\d\s\-–]+)\s*$/);
   if (unit) return `${Number(unit[1]) * qty} ${unit[2]} ${name}`.trim();
   return `${qty} × ${optionLabel || name}`;
+}
+
+/**
+ * Tên gói + ghi chú theo SỐ LƯỢNG khách chọn (giỏ hàng / trang thanh toán):
+ * - qty 1 → giữ nguyên
+ * - Combo  ×2: "Combo 4 × 2" + "6 Mayqueen Slim + 4 Yodetox Extra" (nhân từng món)
+ * - Hàng lẻ ×2: "1 lọ × 2" + "60 viên" (nhân số đầu ghi chú: "30 viên", "20 gói × 2 g" → "40 gói × 2 g")
+ */
+export function optionForQty({ optionLabel = "", optionNote = "", qty = 1 }) {
+  if (qty <= 1) return { label: optionLabel, note: optionNote };
+  const label = `${optionLabel} × ${qty}`;
+  if (isComboNote(optionNote)) return { label, note: packText({ optionNote, qty }) };
+  const m = optionNote.match(/^(\d+)(.*)$/);
+  return { label, note: m ? `${Number(m[1]) * qty}${m[2]}` : optionNote };
 }
 
 /** Số + đơn vị ở cuối tên gói: "1 lọ" → [1, "lọ"], "Combo 1 - 2 lọ" → [2, "lọ"], "Combo 3" → null */

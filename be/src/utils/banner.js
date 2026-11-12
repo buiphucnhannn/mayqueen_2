@@ -24,7 +24,7 @@ export function printStartupBanner({ name, version }) {
   if (env.isProd) {
     const db = mongoose.connection.readyState === 1 ? "connected" : "disconnected";
     process.stdout.write(
-      `${name} v${version} ready - port ${env.port}, db ${db}, admin ${adminConfigured() ? "on" : "off"}, uploads ${env.cloudinary.enabled ? "on" : "off"}\n`,
+      `${name} v${version} ready - port ${env.port}, db ${db}, admin ${adminConfigured() ? "on" : "off"}, uploads ${env.cloudinary.enabled ? "on" : "off"}${env.demoLogin ? ", DEMO LOGIN ON (no password!)" : ""}\n`,
     );
     return;
   }
@@ -41,6 +41,12 @@ export function printStartupBanner({ name, version }) {
       adminConfigured()
         ? `${paint("green", "enabled")} ${paint("dim", `user: ${env.admin.id}`)}`
         : paint("yellow", "ADMIN_ID / ADMIN_PASSWORD not set"),
+    ],
+    [
+      "Demo login",
+      env.demoLogin
+        ? paint("yellow", "ON - nut dang nhap nhanh, khong can mat khau (DEMO_LOGIN=true)")
+        : paint("dim", "off"),
     ],
     [
       "Cloudinary",

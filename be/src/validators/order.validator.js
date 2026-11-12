@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ORDER_STATUSES } from "../models/order.model.js";
+import { ORDER_STATUSES, PAYMENT_METHODS, PAYMENT_STATUSES } from "../models/order.model.js";
 import {
   consent,
   pageQuery,
@@ -29,6 +29,8 @@ export const createOrderSchema = z.object({
     )
     .min(1, "Giỏ hàng trống")
     .max(30),
+  // hình thức thanh toán khách chọn (phí ship tính lại ở server theo hình thức này)
+  paymentMethod: z.enum(PAYMENT_METHODS).optional().default("cod"),
   lang: z.enum(["vi", "en"]).optional().default("vi"),
   consent,
   website: z.string().max(500).optional().default(""), // ô bẫy bot (người dùng không thấy)
@@ -44,6 +46,8 @@ export const createOrderSchema = z.object({
 export const listOrdersQuery = pageQuery.extend({
   status: z.enum(ORDER_STATUSES).optional(),
   q: searchQuery, // mã đơn / SĐT / tên khách
+  // lọc theo thanh toán: cod | bank_transfer | awaiting (chuyển khoản chưa nhận tiền) | paid (đã nhận tiền)
+  payment: z.enum(["cod", "bank_transfer", "awaiting", "paid"]).optional(),
 });
 
 export const orderCodeParam = z.object({ code: z.string().trim().min(4).max(20) });
@@ -52,7 +56,12 @@ export const updateOrderSchema = z
   .object({
     status: z.enum(ORDER_STATUSES).optional(),
     adminNote: z.string().trim().max(2000).optional(),
+    // "paid" = admin đã đối chiếu sao kê, xác nhận đã nhận tiền chuyển khoản; "unpaid" = bỏ xác nhận (bấm nhầm)
+    paymentStatus: z.enum(PAYMENT_STATUSES).optional(),
     // bản admin đang mở → đơn đã đổi sau đó (người khác / tab khác) thì 409, không ghi đè (utils/stale.js)
     expectedUpdatedAt: z.iso.datetime().optional(),
   })
-  .refine((v) => v.status || v.adminNote !== undefined, "Không có gì để cập nhật");
+  .refine(
+    (v) => v.status || v.paymentStatus || v.adminNote !== undefined,
+    "Không có gì để cập nhật",
+  );

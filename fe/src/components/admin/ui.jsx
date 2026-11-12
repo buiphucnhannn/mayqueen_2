@@ -487,7 +487,8 @@ export function SearchBox({ placeholder, onSearch, className, defaultValue = "" 
 }
 
 /**
- * Nút tròn "Làm mới" (đặt cạnh ô tìm kiếm): tải lại dữ liệu của tab đang xem — đơn mới, yêu cầu mới…
+ * Nút tròn "Làm mới" (đặt cạnh ô tìm kiếm): bỏ hết bộ lọc + từ khóa, về trang 1 và tải lại dữ liệu mới nhất
+ * (các trang danh sách gọi list.refresh() — xem useAdminList).
  * Bằng đúng ô tìm kiếm (42px). Biểu tượng xoay trong lúc tải; tải xong hiện thông báo "Đã làm mới"
  * (lỗi → thông báo lỗi). loading / error: trạng thái tải của danh sách (useAdminList).
  */
@@ -599,6 +600,50 @@ const PAGE_BTN =
   "grid h-8 min-w-8 place-items-center rounded-full px-2 text-xs font-semibold tabular-nums transition-colors";
 
 /**
+ * Ô "Đến trang [_]": gõ số rồi Enter (hoặc bấm →) để nhảy thẳng tới trang đó.
+ * Số ngoài khoảng → tự đưa về trang gần nhất (0 → 1, 99 → trang cuối); trùng trang đang xem / rỗng → không làm gì.
+ */
+function GoToPage({ page, totalPages, onPage }) {
+  const [value, setValue] = useState("");
+  const go = (e) => {
+    e.preventDefault();
+    const n = Number.parseInt(value, 10);
+    setValue("");
+    if (!Number.isFinite(n)) return;
+    const target = Math.min(totalPages, Math.max(1, n));
+    if (target !== page) onPage(target);
+  };
+  return (
+    <form onSubmit={go} className="flex items-center gap-1.5">
+      <label htmlFor="goto-page" className="whitespace-nowrap">
+        Đến trang
+      </label>
+      <span className="border-forest/15 focus-within:border-sage-500 flex h-8 items-center rounded-full border bg-white pr-1 pl-3">
+        <input
+          id="goto-page"
+          type="text"
+          inputMode="numeric"
+          autoComplete="off"
+          value={value}
+          onChange={(e) => setValue(e.target.value.replace(/\D/g, "").slice(0, 5))}
+          placeholder={String(page)}
+          aria-label={`Đến trang (1–${totalPages})`}
+          className="text-ink placeholder:text-ink-muted/60 w-8 bg-transparent text-center text-xs font-semibold tabular-nums outline-none"
+        />
+        <button
+          type="submit"
+          disabled={!value}
+          aria-label="Đi tới trang"
+          className="text-forest hover:bg-forest/5 grid size-6 place-items-center rounded-full transition-colors disabled:opacity-35"
+        >
+          <ChevronRight className="size-3.5" aria-hidden="true" />
+        </button>
+      </span>
+    </form>
+  );
+}
+
+/**
  * Chân bảng: "Hiển thị 21–40 trên 125 đơn hàng" · chọn số dòng/trang · ‹ 1 … 4 5 6 … 12 ›
  * - noun: tên đối tượng (đơn hàng, yêu cầu, bài viết...)
  * - onLimit: bỏ trống → không cho chọn số dòng/trang (VD Sản phẩm: cần thấy đủ để kéo-thả sắp xếp)
@@ -645,47 +690,51 @@ export function Pagination({ meta, onPage, onLimit, pageSizes = [10, 20, 50, 100
       </div>
 
       {totalPages > 1 && (
-        <nav aria-label="Phân trang" className="flex items-center gap-1">
-          <IconButton label="Trang trước" disabled={page <= 1} onClick={() => onPage(page - 1)}>
-            <ChevronLeft className="size-4" />
-          </IconButton>
-          {/* điện thoại: gọn "3 / 12"; máy tính: đủ số trang để nhảy nhanh */}
-          <span className="text-ink px-2 font-semibold tabular-nums sm:hidden">
-            {page} / {totalPages}
-          </span>
-          <span className="hidden items-center gap-1 sm:flex">
-            {pageItems(page, totalPages).map((n) =>
-              typeof n === "string" ? (
-                <span key={n} className="w-6 text-center select-none" aria-hidden="true">
-                  …
-                </span>
-              ) : (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => n !== page && onPage(n)}
-                  aria-label={`Trang ${n}`}
-                  aria-current={n === page ? "page" : undefined}
-                  className={cn(
-                    PAGE_BTN,
-                    n === page
-                      ? "bg-forest text-white"
-                      : "text-ink-soft hover:bg-forest/5 hover:text-forest",
-                  )}
-                >
-                  {n}
-                </button>
-              ),
-            )}
-          </span>
-          <IconButton
-            label="Trang sau"
-            disabled={page >= totalPages}
-            onClick={() => onPage(page + 1)}
-          >
-            <ChevronRight className="size-4" />
-          </IconButton>
-        </nav>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          {/* nhiều trang (có "…" bị lược trên máy tính, điện thoại chỉ thấy "3 / 12") → cho gõ số trang nhảy thẳng */}
+          {totalPages > 5 && <GoToPage page={page} totalPages={totalPages} onPage={onPage} />}
+          <nav aria-label="Phân trang" className="flex items-center gap-1">
+            <IconButton label="Trang trước" disabled={page <= 1} onClick={() => onPage(page - 1)}>
+              <ChevronLeft className="size-4" />
+            </IconButton>
+            {/* điện thoại: gọn "3 / 12"; máy tính: đủ số trang để nhảy nhanh */}
+            <span className="text-ink px-2 font-semibold tabular-nums sm:hidden">
+              {page} / {totalPages}
+            </span>
+            <span className="hidden items-center gap-1 sm:flex">
+              {pageItems(page, totalPages).map((n) =>
+                typeof n === "string" ? (
+                  <span key={n} className="w-6 text-center select-none" aria-hidden="true">
+                    …
+                  </span>
+                ) : (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => n !== page && onPage(n)}
+                    aria-label={`Trang ${n}`}
+                    aria-current={n === page ? "page" : undefined}
+                    className={cn(
+                      PAGE_BTN,
+                      n === page
+                        ? "bg-forest text-white"
+                        : "text-ink-soft hover:bg-forest/5 hover:text-forest",
+                    )}
+                  >
+                    {n}
+                  </button>
+                ),
+              )}
+            </span>
+            <IconButton
+              label="Trang sau"
+              disabled={page >= totalPages}
+              onClick={() => onPage(page + 1)}
+            >
+              <ChevronRight className="size-4" />
+            </IconButton>
+          </nav>
+        </div>
       )}
     </div>
   );

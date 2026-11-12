@@ -11,6 +11,7 @@ import { siteConfig } from "@/config/site";
 import { useCart } from "@/context/CartContext";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { href, localize } from "@/i18n";
+import { optionForQty } from "@/lib/pack";
 import { lockScroll } from "@/lib/scroll";
 import { cheapestOption, cn, formatPrice } from "@/lib/utils";
 
@@ -124,10 +125,16 @@ export default function CartDrawer({ labels }) {
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <p className="text-forest leading-snug font-semibold">{l.name}</p>
-                        <p className="text-ink-muted mt-0.5 text-xs">
-                          {l.optionLabel}
-                          {l.optionNote && <span className="block">{l.optionNote}</span>}
-                        </p>
+                        {/* theo số lượng: "Combo 4 × 2" + "6 Mayqueen Slim + 4 Yodetox Extra" */}
+                        {(() => {
+                          const o = optionForQty(l);
+                          return (
+                            <p className="text-ink-muted mt-0.5 text-xs">
+                              {o.label}
+                              {o.note && <span className="block">{o.note}</span>}
+                            </p>
+                          );
+                        })()}
                       </div>
                       <button
                         type="button"

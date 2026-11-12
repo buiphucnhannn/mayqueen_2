@@ -47,6 +47,10 @@ router.post(
   validate({ body: loginSchema }),
   authController.login,
 );
+// Đăng nhập nhanh (demo) — chỉ hoạt động khi DEMO_LOGIN=true; giới hạn 20 lần / 15 phút / IP
+const demoLimiter = limiter({ windowMs: FIFTEEN_MIN, limit: 20, message: tooMany });
+router.get("/demo", authController.demoStatus);
+router.post("/demo", demoLimiter, authController.demoLogin);
 router.post("/refresh", refreshLimiter, authController.refresh);
 router.get("/resume", refreshLimiter, authController.resume);
 // Không bắt buộc access token: để quá 15 phút rồi bấm Đăng xuất vẫn thu hồi phiên + xóa cookie
