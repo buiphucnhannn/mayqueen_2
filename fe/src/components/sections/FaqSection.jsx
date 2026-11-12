@@ -11,11 +11,13 @@ export default function FaqSection({ data, faqs, phone, phoneRaw }) {
       <Container wide className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
         <div className="lg:sticky lg:top-32 lg:self-start">
           <SectionHeading eyebrow={data.eyebrow} title={data.title} text={data.text} align="left" />
-          <div className="reveal mt-7 flex flex-wrap gap-3">
-            <Button data-consult="" variant="primary">
+          {/* 2 nút LUÔN bằng nhau: đủ chỗ → cạnh nhau cùng chiều rộng (cùng basis 15rem, cùng grow);
+              hẹp (điện thoại) → xuống dòng, mỗi nút rộng hết hàng */}
+          <div className="reveal mt-7 flex max-w-[32rem] flex-wrap gap-3">
+            <Button data-consult="" variant="primary" className="grow basis-[15rem]">
               {data.consultCta}
             </Button>
-            <Button href={`tel:${phoneRaw}`} variant="outline">
+            <Button href={`tel:${phoneRaw}`} variant="outline" className="grow basis-[15rem]">
               {data.cta} - {phone}
             </Button>
           </div>

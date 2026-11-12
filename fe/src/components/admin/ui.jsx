@@ -178,6 +178,7 @@ export function MoneyInput({ value, onChange, className, ...props }) {
 }
 
 export function Switch({ checked, onChange, label, description, ariaLabel }) {
+  const bare = !label && !description; // chỉ có công tắc (VD cột "Đang bán" trong bảng)
   return (
     <button
       type="button"
@@ -185,7 +186,8 @@ export function Switch({ checked, onChange, label, description, ariaLabel }) {
       aria-checked={checked}
       aria-label={ariaLabel} // nút chỉ có công tắc, không chữ (VD trong bảng) → vẫn đọc được là bật / tắt gì
       onClick={() => onChange(!checked)}
-      className="flex items-start gap-3 text-left"
+      // không nhãn: nút gọn đúng bằng công tắc (inline) → ô bảng căn giữa được; có nhãn: cả hàng bấm được như cũ
+      className={cn("items-start gap-3 text-left", bare ? "inline-flex align-middle" : "flex")}
     >
       <span
         className={cn(
@@ -200,10 +202,12 @@ export function Switch({ checked, onChange, label, description, ariaLabel }) {
           )}
         />
       </span>
-      <span>
-        <span className="text-ink block text-[13px] font-semibold">{label}</span>
-        {description && <span className="text-ink-muted block text-xs">{description}</span>}
-      </span>
+      {!bare && (
+        <span>
+          <span className="text-ink block text-[13px] font-semibold">{label}</span>
+          {description && <span className="text-ink-muted block text-xs">{description}</span>}
+        </span>
+      )}
     </button>
   );
 }

@@ -118,7 +118,7 @@ export default function ConsultForm({ labels }) {
     <form
       onSubmit={submit}
       noValidate
-      className="max-lg:tiny:sm:space-y-3 relative space-y-3 sm:space-y-4 lg:space-y-5"
+      className="max-lg:tiny:sm:space-y-3 max-sm:tiny:space-y-2.5 relative space-y-3 sm:space-y-4 lg:space-y-5"
     >
       {/* lỗi hiện ĐÈ lên viền dưới ô nhập (không chiếm thêm dòng) → popup giữ nguyên kích thước */}
       <div className="grid grid-cols-2 gap-3 pb-1 sm:gap-4 lg:gap-5">
@@ -138,7 +138,7 @@ export default function ConsultForm({ labels }) {
             aria-invalid={!!errors.name}
             aria-describedby={errors.name ? "consult-name-error" : undefined}
             className={cn(
-              "field max-lg:tiny:py-2.5 lg:py-3.5 lg:text-[16px]",
+              "field max-lg:tiny:py-2.5 max-sm:px-3.5 max-sm:py-2.5 lg:py-3.5 lg:text-[16px]",
               errors.name && "border-red-400",
             )}
           />
@@ -169,7 +169,7 @@ export default function ConsultForm({ labels }) {
             aria-invalid={!!errors.phone}
             aria-describedby={errors.phone ? "consult-phone-error" : undefined}
             className={cn(
-              "field max-lg:tiny:py-2.5 lg:py-3.5 lg:text-[16px]",
+              "field max-lg:tiny:py-2.5 max-sm:px-3.5 max-sm:py-2.5 lg:py-3.5 lg:text-[16px]",
               errors.phone && "border-red-400",
             )}
           />
@@ -197,7 +197,7 @@ export default function ConsultForm({ labels }) {
               aria-pressed={values.goal === i}
               onClick={() => set("goal", values.goal === i ? null : i)} // bấm lại = bỏ chọn
               className={cn(
-                "max-lg:tiny:sm:min-h-9 max-lg:tiny:sm:py-1.5 flex min-h-10 items-center justify-center rounded-xl border px-2.5 py-1.5 text-center text-[12.5px] leading-snug transition sm:min-h-11 sm:px-3 sm:py-2 sm:text-[13px] lg:min-h-12 lg:text-[15.5px]",
+                "max-lg:tiny:sm:min-h-9 max-lg:tiny:sm:py-1.5 max-sm:short:min-h-8 max-sm:short:text-[12px] flex min-h-9 items-center justify-center rounded-xl border px-2 py-1 text-center text-[12.5px] leading-snug transition sm:min-h-11 sm:px-3 sm:py-2 sm:text-[13px] lg:min-h-12 lg:text-[15.5px]",
                 values.goal === i
                   ? "border-forest bg-forest text-pearl"
                   : "border-forest/15 text-ink-soft hover:border-forest/40 bg-white",
@@ -220,7 +220,7 @@ export default function ConsultForm({ labels }) {
           placeholder={labels.note}
           value={values.note}
           onChange={(e) => set("note", e.target.value)}
-          className="field max-lg:tiny:py-2.5 resize-none lg:py-3.5 lg:text-[16px]"
+          className="field max-lg:tiny:py-2.5 max-sm:short:h-[52px] resize-none max-sm:px-3.5 max-sm:py-2.5 lg:py-3.5 lg:text-[16px]"
         />
       </div>
 
@@ -249,7 +249,7 @@ export default function ConsultForm({ labels }) {
         type="submit"
         size="lg"
         arrow
-        className="max-lg:tiny:h-12 w-full lg:h-14 lg:text-[15px]"
+        className="max-lg:tiny:h-12 w-full max-sm:h-12 lg:h-14 lg:text-[15px]"
         disabled={status === "sending"}
       >
         {status === "sending" ? labels.sending : labels.submit}

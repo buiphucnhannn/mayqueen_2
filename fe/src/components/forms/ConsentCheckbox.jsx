@@ -103,6 +103,8 @@ export default function ConsentCheckbox({
           className={cn(
             // text-pretty: tránh dòng cuối chỉ còn 1 chữ lẻ loi
             "text-sm leading-relaxed text-pretty transition-colors lg:text-[15.5px]",
+            // popup tư vấn trên điện thoại: chữ nhỏ + dòng sát hơn → popup vừa 1 màn hình
+            compact && "max-sm:text-[13px] max-sm:leading-snug",
             error && compact ? "text-red-600" : "text-ink-soft",
           )}
         >

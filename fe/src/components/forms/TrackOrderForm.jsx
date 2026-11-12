@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Check, PackageSearch, Phone, XCircle } from "lucide-react";
 import BankTransferPanel from "@/components/payment/BankTransferPanel";
+import QrReveal from "@/components/payment/QrReveal";
 import Button from "@/components/ui/Button";
 import { api } from "@/lib/api";
 import { optionForQty } from "@/lib/pack";
@@ -409,20 +410,14 @@ function OrderResult({ order, lang, labels }) {
       {/* khách đã bấm "Xác nhận đã thanh toán" → shop đang kiểm tra: QR thu gọn (phòng khi chưa chuyển được) */}
       {order.payment &&
         (order.paymentClaimed ? (
-          <details className="group mt-6">
-            <summary className="text-sage-700 hover:text-forest inline-flex cursor-pointer list-none items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline">
-              {labels.reviewQr}
-              <span className="transition-transform group-open:rotate-90" aria-hidden="true">
-                ›
-              </span>
-            </summary>
+          <QrReveal label={labels.reviewQr} className="mt-6">
             <BankTransferPanel
               payment={order.payment}
               lang={lang}
               badge={labels.verifyingPayment}
               className="bg-cream/50 mt-4 shadow-none"
             />
-          </details>
+          </QrReveal>
         ) : (
           <BankTransferPanel
             payment={order.payment}

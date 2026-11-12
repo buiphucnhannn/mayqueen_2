@@ -111,7 +111,8 @@ export default function ErrorScreen({
               {eyebrow}
             </p>
           )}
-          <h1 className="h-lux text-pearl mt-3 text-[28px] sm:text-[38px]">{title}</h1>
+          {/* text-balance: tiêu đề dài trên điện thoại tự cân 2 dòng (không tách "tạm / thời") */}
+          <h1 className="h-lux text-pearl mt-3 text-[28px] text-balance sm:text-[38px]">{title}</h1>
           {text && (
             <p className="text-pearl/75 mx-auto mt-4 max-w-lg text-[15px] leading-relaxed text-balance">
               {/* mảng = mỗi câu 1 dòng (không ngắt giữa câu); chuỗi = tự cân dòng */}

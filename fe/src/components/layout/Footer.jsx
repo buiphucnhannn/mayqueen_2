@@ -201,9 +201,10 @@ export default function Footer({ lang, site, footer, products, policies, article
         {/* pb-24 trên điện thoại / px-24 ở màn vừa: chừa chỗ cho nút "lên đầu trang" & nút liên hệ nổi */}
         <Container
           wide
-          className="text-pearl/50 flex flex-col gap-4 pt-6 pb-24 text-[12px] leading-relaxed sm:pb-6 sm:max-2xl:px-24! lg:flex-row lg:items-center lg:justify-between lg:gap-12"
+          // điện thoại: cả dải căn giữa (logo trên, chữ dưới); sm+: logo | chữ nằm ngang như cũ
+          className="text-pearl/50 flex flex-col items-center gap-4 pt-6 pb-24 text-center text-[12px] leading-relaxed sm:items-start sm:pb-6 sm:text-left sm:max-2xl:px-24! lg:flex-row lg:items-center lg:justify-between lg:gap-12"
         >
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
             <Image
               src={brand.stackedWhite}
               alt="B.O.T"
@@ -211,7 +212,7 @@ export default function Footer({ lang, site, footer, products, policies, article
               height={40}
               className="h-8 w-auto shrink-0 opacity-80"
             />
-            <span className="bg-pearl/15 h-8 w-px shrink-0" aria-hidden="true" />
+            <span className="bg-pearl/15 hidden h-8 w-px shrink-0 sm:block" aria-hidden="true" />
             <div className="min-w-0">
               <p className="text-sage-300 text-[11px] font-semibold tracking-[0.18em] uppercase">
                 {footer.certified}

@@ -36,7 +36,8 @@ export default function PageHeroCopy({ crumbs = [], eyebrow, title, accent, text
       </h1>
       {text && (
         <p
-          className="reveal text-pearl/85 mt-5 line-clamp-3 max-w-2xl font-serif text-[18px] leading-relaxed sm:text-[20px]"
+          // text-balance: chia dòng đều nhau → không còn 1 chữ lẻ loi rớt xuống dòng cuối ("…giờ làm / việc.")
+          className="reveal text-pearl/85 mt-5 line-clamp-3 max-w-2xl font-serif text-[18px] leading-relaxed text-balance sm:text-[20px]"
           style={{ "--reveal-delay": "160ms" }}
         >
           {text}

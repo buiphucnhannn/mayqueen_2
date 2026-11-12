@@ -123,13 +123,14 @@ export default async function RootLayout({ children, params }) {
       return { priceRange: `${f(Math.min(...prices))} – ${f(Math.max(...prices))}` };
     })(),
     currenciesAccepted: "VND",
-    paymentAccepted: "Cash on delivery",
-    // giờ hỗ trợ (site.hours: 08:00 – 22:00, Thứ 2 – Chủ nhật) → Google Maps / khung doanh nghiệp
+    paymentAccepted: "Cash on delivery, Bank transfer",
+    // giờ hỗ trợ (config/site.js → openingHours, cùng nguồn với dòng "Giờ làm việc" ở chân trang) → Google Maps /
+    // khung doanh nghiệp
     openingHoursSpecification: {
       "@type": "OpeningHoursSpecification",
-      dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
-      opens: "08:00",
-      closes: "22:00",
+      dayOfWeek: siteConfig.openingHours.days,
+      opens: siteConfig.openingHours.opens,
+      closes: siteConfig.openingHours.closes,
     },
     contactPoint: {
       "@type": "ContactPoint",

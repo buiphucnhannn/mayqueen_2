@@ -1,3 +1,4 @@
+import { siteConfig } from "@/config/site";
 import { t } from "@/i18n";
 
 // Menu chính bên trái logo (đường dẫn tiếng Việt — đi qua href(lang, path) khi render).
@@ -101,14 +102,15 @@ export const ui = {
   },
   checkout: {
     title: t("Đặt hàng", "Checkout"),
-    seoTitle: t("Đặt hàng – COD hoặc chuyển khoản", "Checkout – Cash on delivery or bank transfer"),
+    // tên tab: ngắn, rõ việc khách đang làm (trang này noindex — không cần từ khóa SEO); layout thêm " | Mayqueen Slim"
+    seoTitle: t("Đặt hàng", "Checkout"),
     // banner đầu trang (cùng bố cục các trang con: dòng nhỏ + tiêu đề 2 màu + mô tả)
     eyebrow: t("COD hoặc chuyển khoản", "Cash on delivery or bank transfer"),
     heroTitle: t("Hoàn tất", "Complete"),
     heroAccent: t("đơn hàng", "your order"),
     text: t(
-      "Điền thông tin giao hàng — chuyên viên sẽ gọi xác nhận đơn trong 15 phút (trong giờ làm việc 08:00–22:00).",
-      "Fill in your delivery details — we'll call to confirm within 15 minutes (during business hours, 8 AM–10 PM).",
+      "Điền thông tin giao hàng — chuyên viên sẽ gọi xác nhận đơn sớm nhất trong giờ làm việc.",
+      "Fill in your delivery details — our team will call to confirm your order as soon as possible during business hours.",
     ),
     shippingInfo: t("Thông tin giao hàng", "Delivery details"),
     name: t("Họ và tên", "Full name"),
@@ -165,8 +167,8 @@ export const ui = {
     continue: t("Khám phá sản phẩm", "Explore products"),
     thanks: t("Đặt hàng thành công!", "Order placed!"),
     thanksText: t(
-      "Cảm ơn bạn đã tin chọn Mayqueen. Chuyên viên sẽ gọi xác nhận trong 15 phút (trong giờ làm việc 08:00–22:00).",
-      "Thank you for choosing Mayqueen. We'll call to confirm within 15 minutes (during business hours, 8 AM–10 PM).",
+      "Cảm ơn bạn đã tin chọn Mayqueen. Chuyên viên sẽ sớm gọi xác nhận đơn hàng của bạn.",
+      "Thank you for choosing Mayqueen. Our team will call you shortly to confirm your order.",
     ),
     thanksTextBank: t(
       "Cảm ơn bạn đã chọn Mayqueen! Vui lòng chuyển khoản theo thông tin bên dưới, chúng tôi sẽ gọi xác nhận khi nhận được tiền.",
@@ -244,8 +246,8 @@ export const ui = {
     reviewQr: t("Chưa chuyển khoản được? Xem lại mã QR", "Haven't paid yet? Show the QR code"),
     help: t("Cần hỗ trợ về đơn hàng?", "Need help with your order?"),
     helpText: t(
-      "Gọi hotline / Zalo — chuyên viên Mayqueen hỗ trợ 08:00–22:00 mỗi ngày.",
-      "Call or Zalo us — the Mayqueen team is available 8 AM–10 PM daily.",
+      `Gọi hotline / Zalo — chuyên viên Mayqueen hỗ trợ ${siteConfig.hours.vi}.`,
+      `Call or Zalo us — the Mayqueen team is available ${siteConfig.hours.en}.`,
     ),
   },
   form: {

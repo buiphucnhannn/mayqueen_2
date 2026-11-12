@@ -38,8 +38,8 @@ export const faqs = [
   {
     q: t("Tôi có được kiểm tra hàng trước khi thanh toán?", "Can I check the order before paying?"),
     a: t(
-      "Có. Bạn được kiểm tra hàng trước khi nhận và thanh toán khi nhận hàng (COD) trên toàn quốc. Đơn từ 500.000₫ được miễn phí vận chuyển.",
-      "Yes. You can inspect your order and pay on delivery (COD) nationwide. Orders over 500,000₫ ship free.",
+      "Có. Bạn được kiểm tra hàng trước khi nhận và thanh toán khi nhận hàng (COD) trên toàn quốc — đơn từ 500.000₫ được miễn phí vận chuyển. Nếu chuyển khoản trước qua mã QR, mọi đơn đều được miễn phí vận chuyển và bạn vẫn được đồng kiểm khi nhận hàng.",
+      "Yes. You can inspect your order and pay on delivery (COD) nationwide — orders over 500,000₫ ship free. Pay by bank transfer via QR code in advance and every order ships free, and you can still inspect it on delivery.",
     ),
   },
 ];

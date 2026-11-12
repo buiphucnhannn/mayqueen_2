@@ -18,6 +18,7 @@ const COPY = {
     home: "Về trang chủ",
     homeHref: "/",
     footer: "Mayqueen Slim - B.O.T Việt Nam",
+    languagesLabel: "Ngôn ngữ",
   },
   en: {
     eyebrow: "Something went wrong",
@@ -31,6 +32,7 @@ const COPY = {
     home: "Back to home",
     homeHref: "/en",
     footer: "Mayqueen Slim - B.O.T Vietnam",
+    languagesLabel: "Language",
   },
 };
 
@@ -58,6 +60,15 @@ export default function SiteErrorView({ reset, embedded = false }) {
       text={t.text}
       homeHref={t.homeHref}
       footer={t.footer}
+      // toàn màn hình (lỗi ở layout gốc): nút VI / EN góc phải giống trang 404 (trỏ về trang chủ từng ngôn ngữ).
+      // Nằm trong site (embedded) thì header của site đã có nút đổi ngôn ngữ.
+      {...(!embedded && {
+        languagesLabel: t.languagesLabel,
+        languages: [
+          { code: "vi", href: "/", title: "Tiếng Việt", current: lang === "vi" },
+          { code: "en", href: "/en", title: "English", current: lang === "en" },
+        ],
+      })}
       actions={[{ href: t.homeHref, label: t.home }]}
     >
       <button

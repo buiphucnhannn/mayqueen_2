@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import QtyStepper from "@/components/cart/QtyStepper";
 import BankTransferPanel from "@/components/payment/BankTransferPanel";
+import QrReveal from "@/components/payment/QrReveal";
 import Button from "@/components/ui/Button";
 import { siteConfig } from "@/config/site";
 import { useCart } from "@/context/CartContext";
@@ -59,6 +60,13 @@ const storeTransfer = (t) => {
 const MESSAGES = {
   vi: {
     placeOrderPaid: "Xác nhận đã thanh toán",
+    stepsTitle: "Thanh toán chuyển khoản trong 3 bước",
+    steps: [
+      "Mở app ngân hàng, quét mã QR bên phải.",
+      "Kiểm tra số tiền và nội dung (mã đơn) đã điền sẵn, rồi xác nhận chuyển.",
+      "Quay lại đây, tick đồng ý và bấm “Xác nhận đã thanh toán”.",
+    ],
+    stepsNote: "Đơn chuyển khoản được miễn phí vận chuyển và gọi xác nhận trong giờ làm việc.",
     paidHint: "Bấm sau khi bạn đã chuyển khoản thành công.",
     transferLoading: "Đang tạo mã QR…",
     transferError: "Chưa tạo được mã QR.",
@@ -78,6 +86,8 @@ const MESSAGES = {
       "Mạng chậm hoặc mất kết nối nên chưa nhận được xác nhận. Vui lòng bấm “{button}” lại — hệ thống không tạo trùng đơn — hoặc gọi hotline {phone}.",
     priceChanged:
       "Giá sản phẩm vừa được cập nhật, tổng thanh toán mới là {total}. Vui lòng kiểm tra lại đơn rồi bấm “{button}” để xác nhận.",
+    priceChangedBank:
+      "Giá sản phẩm vừa được cập nhật, tổng mới là {total} (mã QR đã cập nhật theo). Nếu bạn đã chuyển khoản theo số tiền cũ, cứ bấm “{button}” — chúng tôi sẽ liên hệ đối soát phần chênh lệch.",
     unavailable:
       "Sản phẩm sau vừa ngừng bán nên đã được bỏ khỏi giỏ: {items}. Vui lòng kiểm tra lại đơn trước khi đặt.",
     track: "Tra cứu đơn hàng",
@@ -88,6 +98,13 @@ const MESSAGES = {
   },
   en: {
     placeOrderPaid: "I've paid",
+    stepsTitle: "Pay by bank transfer in 3 steps",
+    steps: [
+      "Open your banking app and scan the QR code on the right.",
+      "Check the pre-filled amount and note (your order ID), then confirm the transfer.",
+      "Come back, tick the consent box and press “I've paid”.",
+    ],
+    stepsNote: "Bank-transfer orders ship free; we'll call to confirm during business hours.",
     paidHint: "Press this once your bank transfer has gone through.",
     transferLoading: "Creating QR code…",
     transferError: "Couldn't create the QR code.",
@@ -107,6 +124,8 @@ const MESSAGES = {
       "Your connection is slow or offline, so we couldn't confirm your order. Please press “{button}” again — you won't be charged twice — or call {phone}.",
     priceChanged:
       "Prices were just updated; your new total is {total}. Please review your order and press “{button}” to confirm.",
+    priceChangedBank:
+      "Prices were just updated; your new total is {total} (the QR code has been updated). If you already paid the old amount, just press “{button}” — we'll contact you to settle the difference.",
     unavailable:
       "These items are no longer available and were removed from your cart: {items}. Please review your order.",
     track: "Track this order",
@@ -123,6 +142,31 @@ const noopSubscribe = () => () => {};
 const newKey = () =>
   globalThis.crypto?.randomUUID?.() ??
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+
+/**
+ * Tên hình thức thanh toán: phần trong ngoặc "(quét mã QR)" / "(COD)" giữ NGUYÊN KHỐI — màn hẹp thì cả ngoặc
+ * xuống dòng cùng nhau, không bị ngắt "(quét / mã QR)".
+ */
+// Từ ghép tiếng Việt KHÔNG được ngắt đôi ("ngân / hàng", "nhận / hàng") → nối bằng khoảng trắng không ngắt dòng
+const COMPOUNDS = [
+  "Thanh toán",
+  "nhận hàng",
+  "Chuyển khoản",
+  "ngân hàng",
+  "Cash on",
+  "Bank transfer",
+];
+const keepWords = (s) => COMPOUNDS.reduce((acc, w) => acc.replace(w, w.replace(/ /g, "\u00a0")), s);
+
+function PayTitle({ text }) {
+  const m = /^(.*?)\s*(\([^)]*\))$/.exec(text ?? "");
+  if (!m) return keepWords(text ?? "");
+  return (
+    <>
+      {keepWords(m[1])} <span className="whitespace-nowrap">{m[2]}</span>
+    </>
+  );
+}
 
 const PAY_COD = "cod";
 const PAY_BANK = "bank_transfer";
@@ -152,11 +196,50 @@ export default function CheckoutForm({ labels }) {
       setTransfer({ status: "error", data: null });
     }
   };
+  const qrRef = useRef(null);
+  const scrollToQr = useRef(false); // vừa bấm chọn chuyển khoản → cuộn tới QR khi QR đã hiện
+  // vị trí cuộn TRƯỚC khi tự cuộn xuống QR → khách bấm lại COD thì cuộn mượt về đúng chỗ cũ
+  const scrollBeforeQr = useRef(null);
+  const smoothScrollTo = (y) => {
+    if (window.__lenis) window.__lenis.scrollTo(y, { duration: 0.9 });
+    else window.scrollTo({ top: y, behavior: "smooth" });
+  };
   const selectPayment = (method) => {
+    if (method === PAY_BANK && paymentMethod !== PAY_BANK) scrollToQr.current = true;
+    // chuyển khoản → COD: khung QR biến mất; đã từng tự cuộn xuống QR thì cuộn về vị trí trước đó
+    if (method === PAY_COD && paymentMethod === PAY_BANK && scrollBeforeQr.current !== null) {
+      const back = scrollBeforeQr.current;
+      scrollBeforeQr.current = null;
+      requestAnimationFrame(() => requestAnimationFrame(() => smoothScrollTo(back)));
+    }
     setPaymentMethod(method);
     if (method === PAY_BANK && transfer.status !== "ready" && transfer.status !== "loading")
       loadTransfer();
   };
+  // Khách bấm "Chuyển khoản" → trang tự cuộn mượt xuống khung QR (để "Tổng cộng" vẫn nằm ngay phía trên),
+  // tránh tình trạng bấm xong màn hình đứng yên, khách không biết QR đã hiện ở đâu.
+  useEffect(() => {
+    if (paymentMethod !== PAY_BANK || !scrollToQr.current) return;
+    if (transfer.status === "idle" || transfer.status === "loading") return; // đợi QR / lỗi hiện ra
+    scrollToQr.current = false;
+    requestAnimationFrame(() => {
+      const el = qrRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top;
+      // Đích: ĐÁY khung "Đơn hàng của bạn" chạm đáy màn hình (chừa 20px) → thấy trọn QR, ô đồng ý, nút
+      // "Xác nhận đã thanh toán" + dòng nhắc, khung kết thúc gọn ở mép dưới.
+      // Giới hạn: không kéo quá làm khung QR chui dưới thanh menu (màn thấp / điện thoại → QR nằm ngay dưới menu).
+      const card = el.closest("aside")?.querySelector("button[type=submit]")?.parentElement;
+      const bottom = card ? card.getBoundingClientRect().bottom : top + 600;
+      const toBottom = bottom - window.innerHeight + 20; // đoạn cần kéo để đáy khung chạm đáy màn hình
+      const delta = Math.min(top - 90, toBottom);
+      if (Math.abs(delta) < 24) return; // đã đúng chỗ → không cuộn (tránh giật)
+      scrollBeforeQr.current = window.scrollY; // nhớ chỗ cũ để bấm lại COD thì quay về
+      const y = window.scrollY + delta;
+      if (window.__lenis) window.__lenis.scrollTo(y, { duration: 0.9 });
+      else window.scrollTo({ top: y, behavior: "smooth" });
+    });
+  }, [paymentMethod, transfer.status]);
   const transferPayment = useMemo(() => {
     const t = transfer.data;
     if (!t) return null;
@@ -395,8 +478,9 @@ export default function CheckoutForm({ labels }) {
         // Giá vừa đổi → không tự đặt với số tiền khác: báo tổng mới, khách bấm lại = đồng ý
         setAccepted({ sig, total: err.details.total });
         router.refresh();
+        // chuyển khoản: khách có thể ĐÃ chuyển theo số cũ → trấn an + hướng dẫn rõ (không để khách hoang mang)
         setFormError(
-          msg.priceChanged
+          (paymentMethod === PAY_BANK ? msg.priceChangedBank : msg.priceChanged)
             .replace("{total}", formatPrice(err.details.total, lang))
             .replace("{button}", buttonLabel),
         );
@@ -469,20 +553,14 @@ export default function CheckoutForm({ labels }) {
         </p>
         {/* khách đã báo chuyển khoản → QR thu gọn (phòng khi bấm nhầm trước khi chuyển xong) */}
         {claimed ? (
-          <details className="group mt-6">
-            <summary className="text-sage-700 hover:text-forest inline-flex cursor-pointer list-none items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline">
-              {msg.reviewQr}
-              <span className="transition-transform group-open:rotate-90" aria-hidden="true">
-                ›
-              </span>
-            </summary>
+          <QrReveal label={msg.reviewQr} className="mt-6">
             <BankTransferPanel
               payment={order.payment}
               lang={lang}
               badge={msg.checking}
               className="mt-4"
             />
-          </details>
+          </QrReveal>
         ) : (
           transfer && <BankTransferPanel payment={order.payment} lang={lang} className="mt-8" />
         )}
@@ -507,7 +585,10 @@ export default function CheckoutForm({ labels }) {
   // Trước khi đọc xong giỏ hàng (localStorage) → khung chờ, tránh chớp màn "Giỏ hàng trống" khi tải lại trang
   if (!hydrated)
     return (
-      <div className="grid gap-10 lg:grid-cols-[1.2fr_1fr] lg:gap-14" aria-busy="true">
+      <div
+        className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:gap-14"
+        aria-busy="true"
+      >
         <div className="bg-pearl/70 shadow-card h-96 animate-pulse rounded-lg" />
         <div className="bg-pearl/70 shadow-card h-80 animate-pulse rounded-lg" />
       </div>
@@ -552,7 +633,11 @@ export default function CheckoutForm({ labels }) {
   );
 
   return (
-    <form onSubmit={submit} noValidate className="grid gap-10 lg:grid-cols-[1.2fr_1fr] lg:gap-14">
+    <form
+      onSubmit={submit}
+      noValidate
+      className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:gap-14"
+    >
       <Honeypot ref={honeypot} />
       {/* Cột trái cao bằng hàng của lưới (= cột cao hơn); thẻ "Hình thức thanh toán" dãn phần còn thiếu
           → đáy 2 cột luôn bằng nhau dù giỏ nhiều hay ít món (cột phải vẫn sticky, dừng đúng đáy cột trái) */}
@@ -597,6 +682,8 @@ export default function CheckoutForm({ labels }) {
           </div>
         </fieldset>
 
+        {/* LUÔN dãn cho đáy 2 cột bằng nhau (bấm COD ↔ chuyển khoản thẻ không co giật). Chuyển khoản: phần dãn
+            thêm có hướng dẫn 3 bước bên dưới nên không bị trống */}
         <fieldset className="reveal bg-pearl shadow-card rounded-lg p-6 sm:p-8 lg:flex-1">
           <legend className="sr-only">{labels.payment}</legend>
           <h2 className="text-forest font-serif text-2xl">{labels.payment}</h2>
@@ -622,7 +709,7 @@ export default function CheckoutForm({ labels }) {
                 <label
                   key={value}
                   className={cn(
-                    "flex cursor-pointer items-center gap-4 rounded-3xl border-2 p-4 transition-colors",
+                    "flex cursor-pointer items-center gap-3 rounded-3xl border-2 p-3.5 transition-colors sm:gap-4 sm:p-4",
                     "has-[:focus-visible]:ring-sage-300 has-[:focus-visible]:ring-2",
                     active
                       ? "border-sage-600 bg-sage-50"
@@ -639,22 +726,22 @@ export default function CheckoutForm({ labels }) {
                   />
                   <span
                     className={cn(
-                      "grid size-11 shrink-0 place-items-center rounded-full",
+                      "grid size-10 shrink-0 place-items-center rounded-full sm:size-11",
                       active ? "bg-sage-100 text-sage-700" : "bg-sage-50 text-sage-600",
                     )}
                   >
-                    <Icon className="size-5" aria-hidden="true" />
+                    <Icon className="size-[18px] sm:size-5" aria-hidden="true" />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="text-forest flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold">
-                      {title}
+                      <PayTitle text={title} />
                       {badge && (
                         <span className="bg-leaf-soft text-forest shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold tracking-wide whitespace-nowrap uppercase">
                           {badge}
                         </span>
                       )}
                     </span>
-                    <span className="text-ink-muted block text-xs">{note}</span>
+                    <span className="text-ink-muted block text-xs text-pretty">{note}</span>
                   </span>
                   <span
                     className={cn(
@@ -669,27 +756,24 @@ export default function CheckoutForm({ labels }) {
             })}
           </div>
 
-          {/* Chọn chuyển khoản → QR hiện NGAY tại đây (nội dung = mã đơn cấp trước, số tiền = tổng đang thấy) */}
+          {/* Máy tính: chọn chuyển khoản → hướng dẫn 3 bước (khớp khung QR ở cột bên cạnh), lấp phần thẻ được kéo
+              dài thay vì để trống. Điện thoại: QR nằm ngay bên dưới, có hướng dẫn riêng → ẩn. */}
           {paymentMethod === PAY_BANK && (
-            <div className="mt-5" aria-live="polite">
-              {transfer.status === "ready" && transferPayment ? (
-                <BankTransferPanel payment={transferPayment} lang={lang} variant="inline" />
-              ) : transfer.status === "error" ? (
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  <span>{msg.transferError}</span>
-                  <button
-                    type="button"
-                    onClick={() => loadTransfer()}
-                    className="rounded-full border border-red-300 bg-white px-3 py-1 text-xs font-semibold transition-colors hover:bg-red-100"
-                  >
-                    {msg.retry}
-                  </button>
-                </div>
-              ) : (
-                <div className="border-sage-200 bg-sage-50/50 text-ink-muted flex h-40 animate-pulse items-center justify-center rounded-3xl border text-sm">
-                  {msg.transferLoading}
-                </div>
-              )}
+            <div className="border-forest/10 mt-6 hidden border-t pt-6 lg:block">
+              <p className="text-forest text-sm font-semibold">{msg.stepsTitle}</p>
+              <ol className="mt-4 space-y-3.5">
+                {msg.steps.map((step, i) => (
+                  <li key={step} className="flex items-start gap-3 text-sm">
+                    <span className="bg-sage-100 text-sage-800 grid size-6 shrink-0 place-items-center rounded-full text-xs font-bold">
+                      {i + 1}
+                    </span>
+                    <span className="text-ink-soft pt-0.5 leading-relaxed">{step}</span>
+                  </li>
+                ))}
+              </ol>
+              <p className="bg-sage-50 text-sage-800 mt-5 rounded-xl px-4 py-3 text-xs leading-relaxed">
+                {msg.stepsNote}
+              </p>
             </div>
           )}
         </fieldset>
@@ -702,45 +786,10 @@ export default function CheckoutForm({ labels }) {
         >
           <h2 className="text-forest font-serif text-2xl">{labels.summary}</h2>
           <ul className="divide-forest/10 mt-5 divide-y">
-            {lines.map((l) => (
-              <li key={l.key} className="flex items-center gap-4 py-4">
-                <div className="relative size-16 shrink-0 overflow-hidden rounded-2xl">
-                  <Image src={l.image} alt={l.name} fill sizes="64px" className="object-cover" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-forest text-sm leading-snug font-semibold">{l.name}</p>
-                  {/* theo số lượng: "Combo 4 × 2" + "6 Mayqueen Slim + 4 Yodetox Extra" */}
-                  {(() => {
-                    const o = optionForQty(l);
-                    return (
-                      <p className="text-ink-muted text-xs">
-                        {o.label}
-                        {o.note && <span className="block">{o.note}</span>}
-                      </p>
-                    );
-                  })()}
-                  {/* tối thiểu 1 (bấm "−" không vô tình xoá món + mất form); xoá bằng nút thùng rác rõ ràng */}
-                  <div className="mt-2 flex items-center gap-2">
-                    <QtyStepper
-                      size="sm"
-                      value={l.qty}
-                      onChange={(q) => setQty(l.slug, l.optionId, q)}
-                      className="text-forest"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setQty(l.slug, l.optionId, 0)}
-                      aria-label={`${msg.remove}: ${l.name}`}
-                      title={msg.remove}
-                      className="text-ink-muted hover:bg-sage-100 hover:text-forest grid size-8 place-items-center rounded-full transition"
-                    >
-                      <Trash2 className="size-4" aria-hidden="true" />
-                    </button>
-                  </div>
-                </div>
-                {/* giá đã giảm + giá gốc gạch ngang → khách thấy khoản tiết kiệm nằm ngay trong giá món.
-                    Giá bán NGANG HÀNG tên sản phẩm (cùng cỡ chữ / dòng), giá gạch ngay bên dưới */}
-                <span className="flex shrink-0 flex-col items-end self-start">
+            {lines.map((l) => {
+              // giá đã giảm + giá gốc gạch ngang → khách thấy khoản tiết kiệm nằm ngay trong giá món
+              const price = (
+                <>
                   <span className="text-forest text-sm leading-snug font-semibold whitespace-nowrap">
                     {formatPrice(l.price * l.qty, lang)}
                   </span>
@@ -749,9 +798,67 @@ export default function CheckoutForm({ labels }) {
                       {formatPrice(l.compareAt * l.qty, lang)}
                     </s>
                   )}
-                </span>
-              </li>
-            ))}
+                </>
+              );
+              return (
+                // Điện thoại: giá xuống HÀNG DƯỚI cạnh nút số lượng → tên sản phẩm trải hết chiều ngang (không bị ép
+                // 4–5 dòng). sm+: giá ngang hàng tên như cũ.
+                <li key={l.key} className="flex items-start gap-3 py-4 sm:items-center sm:gap-4">
+                  <div className="relative size-14 shrink-0 overflow-hidden rounded-2xl sm:size-16">
+                    <Image src={l.image} alt={l.name} fill sizes="64px" className="object-cover" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-forest text-sm leading-snug font-semibold text-pretty">
+                      {l.name}
+                    </p>
+                    {/* theo số lượng: "Combo 4 × 2" + "6 Mayqueen Slim + 4 Yodetox Extra" */}
+                    {(() => {
+                      const o = optionForQty(l);
+                      return (
+                        <p className="text-ink-muted text-xs">
+                          {o.label}
+                          {/* tên sản phẩm trong thành phần combo không bị tách đôi ("Yodetox / Extra") */}
+                          {o.note && (
+                            <span className="block">
+                              {o.note.replace(/Mayqueen Slim|Yodetox Extra/g, (w) =>
+                                w.replace(" ", "\u00a0"),
+                              )}
+                            </span>
+                          )}
+                        </p>
+                      );
+                    })()}
+                    {/* điện thoại: bố cục CỐ ĐỊNH cho mọi món — dòng giá riêng (giá bán đậm + giá gốc gạch ngang
+                        cùng 1 dòng), rồi mới tới nút số lượng → không còn giá lúc bên phải lúc rớt xuống */}
+                    <p className="mt-1.5 flex flex-wrap items-baseline gap-x-2 sm:hidden [&_s]:mt-0">
+                      {price}
+                    </p>
+                    {/* tối thiểu 1 (bấm "−" không vô tình xoá món + mất form); xoá bằng nút thùng rác rõ ràng */}
+                    <div className="mt-2 flex items-center gap-2">
+                      <QtyStepper
+                        size="sm"
+                        value={l.qty}
+                        onChange={(q) => setQty(l.slug, l.optionId, q)}
+                        className="text-forest"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setQty(l.slug, l.optionId, 0)}
+                        aria-label={`${msg.remove}: ${l.name}`}
+                        title={msg.remove}
+                        className="text-ink-muted hover:bg-sage-100 hover:text-forest grid size-8 place-items-center rounded-full transition"
+                      >
+                        <Trash2 className="size-4" aria-hidden="true" />
+                      </button>
+                    </div>
+                  </div>
+                  {/* sm+: giá NGANG HÀNG tên sản phẩm, giá gạch ngay bên dưới */}
+                  <span className="hidden shrink-0 flex-col items-end self-start sm:flex">
+                    {price}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
           <dl className="border-forest/10 space-y-2 border-t pt-5 text-sm">
             <div className="flex justify-between">
@@ -808,6 +915,30 @@ export default function CheckoutForm({ labels }) {
               <dd className="text-forest font-serif text-3xl">{formatPrice(total, lang)}</dd>
             </div>
           </dl>
+          {/* Chọn chuyển khoản → QR hiện NGAY dưới "Tổng cộng" (đúng số tiền vừa thấy), sát nút "Xác nhận đã
+              thanh toán" → khách thấy liền 1 mạch: số tiền → quét QR → bấm xác nhận. Chọn xong trang tự cuộn tới đây. */}
+          {paymentMethod === PAY_BANK && (
+            <div ref={qrRef} className="mt-5 scroll-mt-28" aria-live="polite">
+              {transfer.status === "ready" && transferPayment ? (
+                <BankTransferPanel payment={transferPayment} lang={lang} variant="inline" />
+              ) : transfer.status === "error" ? (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <span>{msg.transferError}</span>
+                  <button
+                    type="button"
+                    onClick={() => loadTransfer()}
+                    className="rounded-full border border-red-300 bg-white px-3 py-1 text-xs font-semibold transition-colors hover:bg-red-100"
+                  >
+                    {msg.retry}
+                  </button>
+                </div>
+              ) : (
+                <div className="border-sage-200 bg-sage-50/50 text-ink-muted flex h-40 animate-pulse items-center justify-center rounded-3xl border text-sm">
+                  {msg.transferLoading}
+                </div>
+              )}
+            </div>
+          )}
           {status === "error" && formError && (
             <p
               className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"

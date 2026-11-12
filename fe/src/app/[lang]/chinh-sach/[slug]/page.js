@@ -83,9 +83,22 @@ async function PolicyContent({ params }) {
                     />
                     <span className="min-w-0">
                       {it.label && (
-                        <strong className="text-forest font-semibold">{it.label}: </strong>
+                        <strong className="text-forest font-semibold">
+                          {it.label}
+                          {it.steps ? "" : ": "}
+                        </strong>
                       )}
-                      <Rich text={it.text} />
+                      {it.text && <Rich text={it.text} />}
+                      {/* các bước của 1 quy trình → mỗi bước 1 dòng, thụt vào dưới nhãn */}
+                      {it.steps && (
+                        <ol className="border-sage-200 mt-2 space-y-1.5 border-l-2 pl-4">
+                          {it.steps.map((step, k) => (
+                            <li key={k}>
+                              <Rich text={step} />
+                            </li>
+                          ))}
+                        </ol>
+                      )}
                     </span>
                   </li>
                 ))}

@@ -59,23 +59,35 @@ export default function Bestsellers({ products, categories, labels, promo, lang 
           key={`${tab}-promo`}
           type="button"
           data-consult=""
-          className="reveal group text-pearl relative col-span-2 flex aspect-[16/10] flex-col items-center justify-end overflow-hidden rounded-md p-6 text-center sm:col-span-1 sm:aspect-auto sm:min-h-full"
+          // Điện thoại: ẢNH chỉ chiếm phần TRÊN thẻ, phần dưới là nền xanh đậm cho chữ → sản phẩm và chữ tách bạch,
+          // không đè nhau ở mọi bề ngang (ảnh phủ cả thẻ thì càng rộng ảnh càng phóng to, sản phẩm trôi xuống chữ).
+          // sm+: ảnh phủ cả thẻ, cao bằng thẻ sản phẩm cùng hàng như cũ.
+          className="reveal group text-pearl bg-forest-deep relative col-span-2 flex flex-col items-center justify-end overflow-hidden rounded-md px-5 pt-[13.5rem] pb-7 text-center sm:col-span-1 sm:min-h-full sm:bg-transparent sm:p-6"
           style={{ "--reveal-delay": `${shown.length * 90}ms` }}
         >
-          <Image
-            src={productImages.mayqueen.stone}
-            alt=""
-            fill
-            sizes="(min-width: 1280px) 22vw, 45vw"
-            className="object-cover transition duration-[1.2s] group-hover:scale-[1.04]"
-          />
-          <span className="from-forest-deep/95 via-forest-deep/70 absolute inset-0 bg-gradient-to-t to-transparent" />
-          <span className="relative">
+          <span className="absolute inset-x-0 top-0 h-60 sm:inset-0 sm:h-auto">
+            <Image
+              src={productImages.mayqueen.stone}
+              alt=""
+              fill
+              sizes="(min-width: 1280px) 22vw, (min-width: 640px) 45vw, 100vw"
+              className="object-cover transition duration-[1.2s] group-hover:scale-[1.04]"
+            />
+            {/* điện thoại: mép dưới ảnh mờ dần vào nền xanh (không có đường cắt cứng) */}
+            <span className="from-forest-deep absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t to-transparent sm:hidden" />
+          </span>
+          {/* điện thoại: ảnh mờ dần xuống nền xanh; sm+: nền tối đậm dần từ dưới lên phủ phần có chữ */}
+          <span className="from-forest-deep via-forest-deep/85 to-forest-deep/0 absolute inset-0 bg-gradient-to-t via-40% sm:via-55%" />
+          <span className="relative max-w-sm">
             <span className="text-leaf text-[10.5px] font-semibold tracking-[0.2em] uppercase">
               {promo.eyebrow}
             </span>
-            <span className="mt-2 block font-serif text-2xl leading-tight">{promo.title}</span>
-            <span className="text-pearl/75 mt-2 block text-[13px]">{promo.text}</span>
+            <span className="mt-2 block font-serif text-2xl leading-tight text-balance">
+              {promo.title}
+            </span>
+            <span className="text-pearl/80 mt-2 block text-[13px] leading-relaxed text-balance">
+              {promo.text}
+            </span>
             <span className="border-pearl mt-5 inline-block border-b pb-1 text-[11.5px] font-semibold tracking-[0.16em] uppercase">
               {promo.cta}
             </span>

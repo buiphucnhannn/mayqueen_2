@@ -120,7 +120,10 @@ export default function ConsultModal({ labels, formLabels, site }) {
             </p>
             <ul className="mt-5 space-y-2.5">
               {labels.bullets.map((b) => (
-                <li key={b} className="text-pearl/90 flex items-start gap-2.5 text-[15.5px] leading-snug">
+                <li
+                  key={b}
+                  className="text-pearl/90 flex items-start gap-2.5 text-[15.5px] leading-snug"
+                >
                   <Check className="text-leaf mt-0.5 size-[18px] shrink-0" aria-hidden="true" />
                   <span>{b}</span>
                 </li>
@@ -134,7 +137,7 @@ export default function ConsultModal({ labels, formLabels, site }) {
             (thiếu 2 cái này, nội dung tràn xuống dưới mép popup và bị cắt mất phần liên hệ nhanh) */}
         <div
           data-lenis-prevent
-          className="no-scrollbar max-lg:short:sm:pt-6 max-lg:short:sm:pb-7 max-lg:micro:sm:pt-5 max-lg:micro:sm:pb-5 relative min-h-0 overflow-y-auto overscroll-contain px-5 pt-6 pb-7 sm:px-9 sm:pt-8 sm:pb-10 lg:px-14 lg:pt-9 lg:pb-9"
+          className="no-scrollbar max-lg:short:sm:pt-6 max-lg:short:sm:pb-7 max-lg:micro:sm:pt-5 max-lg:micro:sm:pb-5 relative min-h-0 overflow-y-auto overscroll-contain px-5 pt-5 pb-5 sm:px-9 sm:pt-8 sm:pb-10 lg:px-14 lg:pt-9 lg:pb-9"
         >
           <button
             ref={closeBtnRef}
@@ -152,22 +155,23 @@ export default function ConsultModal({ labels, formLabels, site }) {
               alt="B.O.T"
               width={357}
               height={136}
-              className="max-lg:tiny:h-6 max-lg:micro:hidden h-7 w-auto lg:h-8"
+              className="max-lg:tiny:h-6 max-lg:micro:hidden max-sm:short:hidden h-6 w-auto sm:h-7 lg:h-8"
             />
-            <h3 className="text-forest max-lg:short:sm:mt-3 max-lg:tiny:sm:mt-2 max-lg:tiny:sm:text-[28px] max-lg:micro:mt-0! mt-3 font-serif text-[24px] leading-tight sm:mt-4 sm:text-[32px] lg:mt-5 lg:text-[40px]">
+            <h3 className="text-forest max-lg:short:sm:mt-3 max-lg:tiny:sm:mt-2 max-lg:tiny:sm:text-[28px] max-lg:micro:mt-0! max-sm:short:mt-0 mt-2 font-serif text-[22px] leading-tight sm:mt-4 sm:text-[32px] lg:mt-5 lg:text-[40px]">
               {labels.title}
             </h3>
-            <p className="text-ink-soft max-lg:tiny:mt-1.5 max-lg:tiny:leading-snug mt-2 max-w-sm text-[13.5px] leading-relaxed text-balance lg:mt-3 lg:max-w-lg lg:text-[16px]">
+            <p className="text-ink-soft max-lg:tiny:mt-1.5 max-lg:tiny:leading-snug mt-1.5 max-w-sm text-[12.5px] leading-snug text-balance sm:mt-2 sm:text-[13.5px] sm:leading-relaxed lg:mt-3 lg:max-w-lg lg:text-[16px]">
               {labels.desc}
             </p>
           </div>
 
-          <div className="max-lg:short:sm:mt-5 max-lg:tiny:sm:mt-4 mt-5 sm:mt-6 lg:mt-7">
+          <div className="max-lg:short:sm:mt-5 max-lg:tiny:sm:mt-4 mt-4 sm:mt-6 lg:mt-7">
             <ConsultForm key={session} labels={formLabels} />
           </div>
 
-          <div className="border-forest/10 text-ink-muted max-lg:short:sm:mt-5 max-lg:short:sm:pt-4 max-lg:tiny:sm:mt-4 max-lg:tiny:sm:pt-3.5 mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 border-t pt-4 text-[12px] sm:mt-6 sm:gap-x-5 sm:pt-5 lg:mt-7 lg:gap-x-6 lg:pt-5 lg:text-[15px]">
-            <span>{labels.or}</span>
+          <div className="border-forest/10 text-ink-muted max-lg:short:sm:mt-5 max-lg:short:sm:pt-4 max-lg:tiny:sm:mt-4 max-lg:tiny:sm:pt-3.5 max-sm:short:mt-3 max-sm:short:pt-2.5 mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t pt-3 text-[12px] sm:mt-6 sm:gap-x-5 sm:pt-5 lg:mt-7 lg:gap-x-6 lg:pt-5 lg:text-[15px]">
+            {/* điện thoại thấp: bỏ chữ dẫn → 3 kênh liên hệ dồn 1 dòng, popup vừa 1 màn hình */}
+            <span className="max-sm:tiny:hidden">{labels.or}</span>
             {quick.map(({ href, label, Icon, ext }) => (
               <a
                 key={label}

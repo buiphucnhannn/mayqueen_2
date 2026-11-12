@@ -201,8 +201,8 @@ export const policies = [
       title: t("Giao hàng", "Delivered"),
       accent: t("tận nơi", "to your door"),
       text: t(
-        "Nội thành Hà Nội 1–2 ngày, các tỉnh thành khác 2–5 ngày làm việc. Miễn phí vận chuyển cho đơn từ 500.000₫.",
-        "Hanoi in 1–2 days, other provinces in 2–5 working days. Free shipping on orders from 500,000₫.",
+        "Nội thành Hà Nội 1–2 ngày, các tỉnh thành khác 2–5 ngày làm việc. Miễn phí vận chuyển cho đơn từ 500.000₫ hoặc chuyển khoản trước.",
+        "Hanoi in 1–2 days, other provinces in 2–5 working days. Free shipping on orders from 500,000₫ or paid by bank transfer.",
       ),
     },
     sections: [
@@ -253,10 +253,17 @@ export const policies = [
             ),
           },
           {
+            label: t("Freeship khi chuyển khoản trước", "Free shipping for bank transfers"),
+            text: t(
+              "Đơn hàng thanh toán bằng chuyển khoản ngân hàng (quét mã QR) trước khi giao được miễn phí 100% cước vận chuyển toàn quốc với MỌI giá trị đơn hàng (xem Chính sách thanh toán).",
+              "Orders paid in advance by bank transfer (QR code) ship 100% free nationwide, whatever the order value (see our Payment Policy).",
+            ),
+          },
+          {
             label: t("Phí vận chuyển đồng giá", "Flat shipping fee"),
             text: t(
-              "Với các đơn hàng dưới 500.000 VNĐ, Mayqueen trợ giá vận chuyển và chỉ thu một mức phí đồng giá duy nhất là 30.000 VNĐ/đơn hàng cho mọi tỉnh thành.",
-              "For orders under 500,000 VND, Mayqueen subsidises shipping and charges a single flat fee of 30,000 VND per order for every province.",
+              "Với các đơn hàng thanh toán khi nhận hàng (COD) dưới 500.000 VNĐ, Mayqueen trợ giá vận chuyển và chỉ thu một mức phí đồng giá duy nhất là 30.000 VNĐ/đơn hàng cho mọi tỉnh thành.",
+              "For cash-on-delivery (COD) orders under 500,000 VND, Mayqueen subsidises shipping and charges a single flat fee of 30,000 VND per order for every province.",
             ),
           },
         ],
@@ -289,31 +296,31 @@ export const policies = [
     slug: "thanh-toan",
     urlSlug: { vi: "thanh-toan", en: "payment" },
     seoTitle: t(
-      "Chính sách thanh toán – COD, được kiểm hàng",
-      "Payment & inspection policy – Cash on delivery",
+      "Chính sách thanh toán – COD và chuyển khoản",
+      "Payment policy – COD & bank transfer",
     ),
     title: t("Chính sách thanh toán", "Payment policy"),
     heading: t("Chính sách thanh toán và kiểm hàng", "Payment & Inspection Policy"),
     hero: {
       eyebrow: t("Thanh toán & kiểm hàng", "Payment & inspection"),
       title: t("Thanh toán", "Pay"),
-      accent: t("khi nhận hàng", "on delivery"),
+      accent: t("linh hoạt", "your way"),
       text: t(
-        "Không cần đặt cọc — đồng kiểm cùng bưu tá, hàng đúng và nguyên vẹn rồi mới thanh toán. Áp dụng toàn quốc.",
-        "No deposit — inspect the parcel with the courier and pay only when it is correct and intact. Nationwide.",
+        "Thanh toán khi nhận hàng (COD) không cần đặt cọc, hoặc chuyển khoản qua mã QR để được miễn phí vận chuyển. Luôn được đồng kiểm cùng bưu tá. Áp dụng toàn quốc.",
+        "Cash on delivery (COD) with no deposit, or bank transfer by QR code for free shipping. You can always inspect the parcel with the courier. Nationwide.",
       ),
     },
     sections: [
       {
         title: t("3.1. Phương thức thanh toán", "3.1. Payment method"),
         text: t(
-          "Để tạo sự tiện lợi tối đa, Mayqueen áp dụng phương thức **Thanh toán tiền mặt khi nhận hàng (Ship COD - Cash on Delivery)** trên toàn quốc.",
-          "For maximum convenience, Mayqueen offers **Cash on Delivery (COD)** nationwide.",
+          "Để tạo sự tiện lợi tối đa, Mayqueen áp dụng phương thức **Thanh toán tiền mặt khi nhận hàng (Ship COD - Cash on Delivery)** trên toàn quốc. Ngoài ra, quý khách có thể chọn **Chuyển khoản ngân hàng qua mã QR** (xem mục 3.3).",
+          "For maximum convenience, Mayqueen offers **Cash on Delivery (COD)** nationwide. You may also choose **Bank transfer via QR code** (see section 3.3).",
         ),
         items: [
           {
             text: t(
-              "Khách hàng không cần phải đặt cọc hay chuyển khoản trước.",
+              "Khách hàng không bắt buộc phải đặt cọc hay chuyển khoản trước.",
               "No deposit or advance bank transfer is required.",
             ),
           },
@@ -354,6 +361,86 @@ export const policies = [
             text: t(
               "Nếu hàng hóa đúng như mô tả và nguyên vẹn, quý khách vui lòng thanh toán đủ tiền cho bưu tá. Nếu phát hiện kiện hàng có dấu hiệu bóp méo, ẩm ướt, sai mã hàng hoặc có dấu hiệu bị tráo đổi, quý khách có quyền TỪ CHỐI NHẬN HÀNG và gọi ngay cho số Hotline của chúng tôi để được giải quyết ngay lập tức. Quý khách sẽ không phải chịu bất kỳ khoản phí hoàn hàng nào trong trường hợp này.",
               "If the goods are as described and intact, please pay the courier in full. If the parcel shows signs of being crushed, damp, the wrong item or tampered with, you have the right to REFUSE DELIVERY and call our Hotline immediately for prompt resolution. You will not pay any return fee in this case.",
+            ),
+          },
+          // ── BỔ SUNG (hình thức chuyển khoản) — các dòng trên giữ NGUYÊN VĂN tài liệu khách ──
+          {
+            label: t("Đơn hàng đã chuyển khoản", "Prepaid orders"),
+            text: t(
+              "Quý khách vẫn được đồng kiểm như trên và không phải thanh toán thêm cho bưu tá. Nếu từ chối nhận hàng vì các lỗi nêu trên, Mayqueen gửi lại sản phẩm mới hoặc hoàn tiền theo **Bước 4 - Chính sách đổi trả và hoàn tiền**.",
+              "You can still inspect the parcel as described above and pay nothing more to the courier. If you refuse delivery for any of the faults above, Mayqueen will send a new product or refund you under **Step 4 of the Return & Refund Policy**.",
+            ),
+          },
+        ],
+      },
+      // ── BỔ SUNG: mục 3.3 – 3.4 cho hình thức chuyển khoản ngân hàng (không có trong tài liệu gốc) ──
+      {
+        title: t("3.3. Thanh toán bằng chuyển khoản ngân hàng", "3.3. Paying by bank transfer"),
+        text: t(
+          "Khi chọn **Chuyển khoản ngân hàng (quét mã QR)** tại bước đặt hàng, mã VietQR hiển thị ngay — quét bằng ứng dụng của bất kỳ ngân hàng nào tại Việt Nam, số tiền và nội dung chuyển khoản đã được điền sẵn. Đơn hàng chuyển khoản trước được **miễn phí vận chuyển** với mọi giá trị đơn hàng.",
+          "When you choose **Bank transfer (QR code)** at checkout, a VietQR code appears straight away — scan it with any Vietnamese banking app; the amount and transfer note are filled in for you. Orders paid by bank transfer in advance ship **free**, whatever the order value.",
+        ),
+        items: [
+          {
+            label: t("Ngân hàng", "Bank"),
+            text: t(siteConfig.bank.fullName, siteConfig.bank.fullName),
+          },
+          {
+            label: t("Số tài khoản", "Account number"),
+            text: t(siteConfig.bank.accountNo, siteConfig.bank.accountNo),
+          },
+          {
+            label: t("Chủ tài khoản", "Account holder"),
+            text: t(siteConfig.bank.accountName, siteConfig.bank.accountName),
+          },
+          {
+            label: t("Nội dung chuyển khoản", "Transfer note"),
+            text: t(
+              "Mã đơn hàng (VD: MQ7K3P9X) — hiển thị tại bước thanh toán và đã điền sẵn trong mã QR. Vui lòng giữ nguyên nội dung để đơn hàng được xác nhận nhanh nhất.",
+              "Your order ID (e.g. MQ7K3P9X) — shown at checkout and pre-filled in the QR code. Please keep it unchanged so we can confirm your order quickly.",
+            ),
+          },
+          {
+            label: t("Cảnh báo giả mạo", "Fraud warning"),
+            text: t(
+              `Mayqueen chỉ nhận chuyển khoản vào tài khoản doanh nghiệp nêu trên và KHÔNG yêu cầu chuyển khoản vào tài khoản cá nhân qua tin nhắn, cuộc gọi hay mạng xã hội. Nếu nhận được yêu cầu như vậy, vui lòng gọi ngay Hotline ${siteConfig.phone} để xác minh.`,
+              `Mayqueen only accepts transfers to the company account above and will NEVER ask you to pay into a personal account via message, call or social media. If you receive such a request, please call our Hotline ${siteConfig.phone} to verify.`,
+            ),
+          },
+        ],
+      },
+      {
+        title: t(
+          "3.4. Xác nhận thanh toán và hoàn tiền đơn chuyển khoản",
+          "3.4. Payment confirmation and refunds for prepaid orders",
+        ),
+        items: [
+          {
+            label: t("Hoàn tất đơn hàng", "Completing your order"),
+            text: t(
+              "Sau khi chuyển khoản thành công, quý khách bấm “Xác nhận đã thanh toán” để gửi đơn hàng.",
+              "Once your transfer has gone through, press “I've paid” to submit your order.",
+            ),
+          },
+          {
+            label: t("Đối soát", "Verification"),
+            text: t(
+              `Mayqueen đối chiếu sao kê, xác nhận đã nhận tiền và gọi điện xác nhận đơn trong giờ làm việc (${siteConfig.hours.vi}). Quý khách theo dõi trạng thái thanh toán tại trang Tra cứu đơn hàng bằng mã đơn và số điện thoại đặt hàng.`,
+              `Mayqueen checks the bank statement, confirms receipt and calls you to confirm the order during business hours (${siteConfig.hours.en}). You can follow the payment status on the Track Order page using your order ID and phone number.`,
+            ),
+          },
+          {
+            label: t("Chuyển sai số tiền hoặc nội dung", "Wrong amount or note"),
+            text: t(
+              `Vui lòng liên hệ Hotline ${siteConfig.phone} kèm ảnh chụp giao dịch để Mayqueen đối soát và hướng dẫn xử lý trước khi giao hàng.`,
+              `Please call our Hotline ${siteConfig.phone} with a screenshot of the transaction so Mayqueen can reconcile it and advise you before delivery.`,
+            ),
+          },
+          {
+            label: t("Hoàn tiền", "Refunds"),
+            text: t(
+              "Đơn hàng đã chuyển khoản nhưng bị hủy trước khi giao hoặc sản phẩm hết hàng: kế toán thực hiện chuyển khoản hoàn trả đúng bằng giá trị thực thu của đơn hàng trong vòng 3-5 ngày làm việc. Sau khi đã nhận hàng, việc đổi trả và hoàn tiền áp dụng theo **Chính sách đổi trả và hoàn tiền**.",
+              "Prepaid orders cancelled before delivery, or whose product is out of stock: our accounting team will transfer back the exact amount actually paid within 3-5 working days. After delivery, returns and refunds follow our **Return & Refund Policy**.",
             ),
           },
         ],
@@ -581,8 +668,8 @@ export const policies = [
           {
             label: t("Kênh tiếp nhận", "Channels"),
             text: t(
-              `Mọi khiếu nại về chất lượng sản phẩm, đơn hàng, thái độ nhân viên tư vấn hoặc bưu tá giao hàng, quý khách gửi qua một trong các kênh: Hotline ${siteConfig.phone} (08:00 – 22:00 hằng ngày); Email ${siteConfig.company.email}; Zalo ${siteConfig.phone}; Messenger trang Facebook chính thức. Vui lòng cung cấp mã đơn hàng, số điện thoại đặt hàng và hình ảnh / video sản phẩm (nếu có).`,
-              `For any complaint about product quality, your order, our consultants or the delivery courier, please contact us via: Hotline ${siteConfig.phone} (8 AM – 10 PM daily); Email ${siteConfig.company.email}; Zalo ${siteConfig.phone}; or Messenger on our official Facebook page. Please include your order code, the phone number used for the order and photos / videos of the product (if any).`,
+              `Mọi khiếu nại về chất lượng sản phẩm, đơn hàng, thái độ nhân viên tư vấn hoặc bưu tá giao hàng, quý khách gửi qua một trong các kênh: Hotline ${siteConfig.phone} (${siteConfig.hours.vi}); Email ${siteConfig.company.email}; Zalo ${siteConfig.phone}; Messenger trang Facebook chính thức. Vui lòng cung cấp mã đơn hàng, số điện thoại đặt hàng và hình ảnh / video sản phẩm (nếu có).`,
+              `For any complaint about product quality, your order, our consultants or the delivery courier, please contact us via: Hotline ${siteConfig.phone} (${siteConfig.hours.en}); Email ${siteConfig.company.email}; Zalo ${siteConfig.phone}; or Messenger on our official Facebook page. Please include your order code, the phone number used for the order and photos / videos of the product (if any).`,
             ),
           },
           {
@@ -594,10 +681,25 @@ export const policies = [
           },
           {
             label: t("Quy trình xử lý", "Process"),
-            text: t(
-              "Bước 1 – Tiếp nhận: ghi nhận khiếu nại và xác nhận lại với quý khách. Bước 2 – Xác minh: kiểm tra đơn hàng, sản phẩm, làm việc với đơn vị vận chuyển (nếu cần). Bước 3 – Phản hồi: đưa ra hướng xử lý (đổi sản phẩm, hoàn tiền, hoặc giải thích) theo Chính sách đổi trả. Bước 4 – Hoàn tất: thực hiện phương án đã thống nhất và thông báo kết quả cho quý khách.",
-              "Step 1 – Receive: we log your complaint and confirm it with you. Step 2 – Verify: we check the order and product and, if needed, work with the courier. Step 3 – Respond: we propose a solution (replacement, refund or explanation) under our Returns policy. Step 4 – Close: we carry out the agreed solution and notify you of the result.",
-            ),
+            // câu chữ NGUYÊN VĂN, chỉ tách mỗi bước 1 dòng cho dễ đọc
+            steps: [
+              t(
+                "**Bước 1 – Tiếp nhận:** ghi nhận khiếu nại và xác nhận lại với quý khách.",
+                "**Step 1 – Receive:** we log your complaint and confirm it with you.",
+              ),
+              t(
+                "**Bước 2 – Xác minh:** kiểm tra đơn hàng, sản phẩm, làm việc với đơn vị vận chuyển (nếu cần).",
+                "**Step 2 – Verify:** we check the order and product and, if needed, work with the courier.",
+              ),
+              t(
+                "**Bước 3 – Phản hồi:** đưa ra hướng xử lý (đổi sản phẩm, hoàn tiền, hoặc giải thích) theo Chính sách đổi trả.",
+                "**Step 3 – Respond:** we propose a solution (replacement, refund or explanation) under our Returns policy.",
+              ),
+              t(
+                "**Bước 4 – Hoàn tất:** thực hiện phương án đã thống nhất và thông báo kết quả cho quý khách.",
+                "**Step 4 – Close:** we carry out the agreed solution and notify you of the result.",
+              ),
+            ],
           },
           {
             label: t("Giải quyết tranh chấp", "Dispute resolution"),

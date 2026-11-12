@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Ban,
   BadgeCheck,
@@ -154,6 +154,39 @@ const StatusBadge = ({ status }) => (
   <Badge tone={ORDER_STATUS[status]?.tone}>{ORDER_STATUS[status]?.label ?? status}</Badge>
 );
 
+/**
+ * Tóm tắt sản phẩm của 1 đơn (bảng + thẻ điện thoại): hàng lẻ 1 dòng "2 lọ Mayqueen Slim";
+ * combo "Combo 3 × 2" + dòng nhỏ tổng món cần lấy.
+ */
+function LinesSummary({ lines }) {
+  return (
+    <div className="space-y-1.5">
+      {lines.map((l) => {
+        const combo = isComboNote(l.optionNote);
+        const need = packText(l);
+        return (
+          <div
+            key={`${l.slug}:${l.optionId}`}
+            title={`${l.name} — ${l.optionLabel} × ${l.qty}`}
+            className="text-xs"
+          >
+            <span className="text-ink block truncate font-medium">
+              {combo ? (
+                <>
+                  {l.optionLabel} <span className="text-ink-muted">× {l.qty}</span>
+                </>
+              ) : (
+                need
+              )}
+            </span>
+            {combo && <span className="text-ink-muted block truncate text-[11px]">{need}</span>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 const isTransfer = (order) => order?.paymentMethod === "bank_transfer";
 // đơn cũ (trước khi có chuyển khoản) không có paymentStatus → coi là chưa nhận tiền
 const paymentStatusOf = (order) => order?.paymentStatus ?? "unpaid";
@@ -229,11 +262,14 @@ function PaymentSection({ order, onSaved }) {
         paid ? "border-emerald-200 bg-emerald-50/50" : "border-amber-200 bg-amber-50/50",
       )}
     >
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="eyebrow flex items-center gap-1.5">
-          <Landmark className="size-3.5" aria-hidden="true" /> Thanh toán chuyển khoản
+      {/* điện thoại hẹp: nhãn trạng thái xuống dòng dưới tiêu đề (không bị cắt "Chờ kiểm t…") */}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <h3 className="eyebrow flex items-center gap-1.5 whitespace-nowrap">
+          <Landmark className="size-3.5" aria-hidden="true" /> Chuyển khoản
         </h3>
-        <PaymentBadge order={order} />
+        <span className="shrink-0">
+          <PaymentBadge order={order} />
+        </span>
       </div>
       <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
         <div>
@@ -624,10 +660,22 @@ export default function OrdersPage() {
   const confirm = useConfirm();
   const toast = useToast();
 
+  // Lưu trong ngăn chi tiết: cập nhật TẠI CHỖ (đơn đang xem không biến mất dưới tay), đánh dấu "đã đổi".
+  // Đóng ngăn → tải lại danh sách theo bộ lọc đang chọn: đơn không còn khớp (VD vừa chuyển khỏi "Chờ xác nhận",
+  // đã xác nhận thanh toán khi đang lọc "Chờ kiểm tra tiền") rời khỏi danh sách ngay.
+  const changed = useRef(false);
   const onSaved = (order) => {
     list.setItems((items) => items.map((o) => (o.id === order.id ? order : o)));
     setSelected(order);
+    changed.current = true;
     reloadStats();
+  };
+  const closeDrawer = () => {
+    setSelected(null);
+    if (changed.current) {
+      changed.current = false;
+      list.reload();
+    }
   };
 
   const remove = async (order) => {
@@ -723,7 +771,65 @@ export default function OrdersPage() {
             />
           }
         >
-          <table className="w-full text-sm">
+          {/* Điện thoại: thẻ bố cục CỐ ĐỊNH (mã + ngày → khách → sản phẩm → tổng + trạng thái), mọi thẻ giống nhau
+              → dò nhanh. Bảng chỉ dùng từ màn ≥ 768px. */}
+          <ul className="divide-forest/10 divide-y md:hidden">
+            {list.items.map((o) => (
+              <li
+                key={o.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => setSelected(o)}
+                onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setSelected(o)}
+                className="active:bg-sage-50/80 focus-visible:bg-sage-50/80 cursor-pointer px-4 py-4 transition-colors outline-none"
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-forest flex items-center gap-1.5 text-[15px] font-semibold tracking-wide">
+                    {o.code}
+                    {o.adminNote && (
+                      <StickyNote className="text-sage-500 size-3.5" aria-label="Có ghi chú" />
+                    )}
+                  </span>
+                  <span className="text-ink-muted shrink-0 text-xs tabular-nums">
+                    {dateTime(o.createdAt)}
+                  </span>
+                </div>
+                <p className="mt-1.5 flex min-w-0 items-center gap-1.5 text-sm">
+                  <span className="text-ink truncate font-medium">{o.customer.name}</span>
+                  {o.lang === "en" && (
+                    <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+                      EN
+                    </span>
+                  )}
+                  <span className="text-ink-muted shrink-0 text-xs">· {o.customer.phone}</span>
+                </p>
+                <div className="bg-sage-50/70 mt-2.5 rounded-xl px-3 py-2">
+                  <LinesSummary lines={o.lines} />
+                </div>
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <span className="text-forest text-base font-semibold whitespace-nowrap tabular-nums">
+                    {formatPrice(o.total)}
+                  </span>
+                  <span className="flex flex-wrap items-center justify-end gap-1.5">
+                    <StatusBadge status={o.status} />
+                    <PaymentBadge order={o} />
+                    {canDelete(o) && (
+                      <span onClick={(e) => e.stopPropagation()}>
+                        <IconButton
+                          label="Xóa đơn"
+                          onClick={() => remove(o)}
+                          className="hover:text-red-600"
+                        >
+                          <Trash2 className="size-4" />
+                        </IconButton>
+                      </span>
+                    )}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <table className="hidden w-full text-sm md:table">
             <thead className="border-forest/10 border-b">
               <tr>
                 <th className={th}>Mã đơn</th>
@@ -771,33 +877,8 @@ export default function OrdersPage() {
                   {/* căn giữa như các cột số liệu; đọc giống khung chi tiết ("Cần chuẩn bị"):
                       sản phẩm lẻ 1 dòng "2 lọ Mayqueen Slim"; combo "Combo 3 × 2" + tổng món cần lấy */}
                   <td className={cn(tdc, "text-ink-soft")}>
-                    <div className="mx-auto max-w-72 space-y-1.5">
-                      {o.lines.map((l) => {
-                        const combo = isComboNote(l.optionNote);
-                        const need = packText(l);
-                        return (
-                          <div
-                            key={`${l.slug}:${l.optionId}`}
-                            title={`${l.name} — ${l.optionLabel} × ${l.qty}`}
-                            className="text-xs"
-                          >
-                            <span className="text-ink block truncate font-medium">
-                              {combo ? (
-                                <>
-                                  {l.optionLabel} <span className="text-ink-muted">× {l.qty}</span>
-                                </>
-                              ) : (
-                                need
-                              )}
-                            </span>
-                            {combo && (
-                              <span className="text-ink-muted block truncate text-[11px]">
-                                {need}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })}
+                    <div className="mx-auto max-w-72">
+                      <LinesSummary lines={o.lines} />
                     </div>
                   </td>
                   <td
@@ -836,7 +917,7 @@ export default function OrdersPage() {
       <OrderDrawer
         key={selected?.id ?? "none"}
         order={selected}
-        onClose={() => setSelected(null)}
+        onClose={closeDrawer}
         onSaved={onSaved}
         onDelete={remove}
       />

@@ -36,7 +36,23 @@ export const siteConfig = {
   phone: "0969 637 542",
   phoneRaw: "0969637542",
   address: t("Hà Đông, Hà Nội, Việt Nam", "Ha Dong, Hanoi, Vietnam"),
-  hours: t("08:00 – 22:00, Thứ 2 – Chủ nhật", "8 AM – 10 PM, Mon – Sun"),
+  // ---- Giờ làm việc / hỗ trợ: SỬA TẠI ĐÂY, toàn site cập nhật theo (chân trang, trang chính sách, trang tra cứu
+  // đơn, chính sách khiếu nại, dữ liệu giờ mở cửa gửi Google). Hiện theo giờ hành chính: 08:00 – 17:00, Thứ 2 – Thứ 6.
+  // (Tài liệu khách gửi chưa ghi giờ cụ thể — đổi theo giờ thực tế khi shop xác nhận.)
+  hours: t("08:00 – 17:00, Thứ 2 – Thứ 6", "8 AM – 5 PM, Mon – Fri"),
+  // ---- Tài khoản nhận chuyển khoản (hiển thị ở Chính sách thanh toán) — GIỮ KHỚP với BANK_* ở backend
+  // (be/src/config/env.js: mã QR / số tài khoản trên trang thanh toán lấy từ backend)
+  bank: {
+    name: "Techcombank",
+    fullName: "Ngân hàng TMCP Kỹ Thương Việt Nam (Techcombank)",
+    accountNo: "315868",
+    accountName: "CONG TY TNHH DAU TU THUONG MAI VA DICH VU BOT VIET NAM",
+  },
+  openingHours: {
+    days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+    opens: "08:00",
+    closes: "17:00",
+  },
   // Bản đồ = ĐỊA CHỈ TRỤ SỞ (company.address). Google chưa có dữ liệu riêng cho lô "ATT 4-9" → ghim vào
   // KĐT Him Lam Vạn Phúc (Hà Đông). Khi công ty có Google Business Profile, thay MAPS_QUERY bằng tên doanh nghiệp
   // trên Maps để ghim đúng từng căn. (Link khách gửi maps.app.goo.gl/eoVXPYNVaPmcASwV8 là tiệm "May Queen

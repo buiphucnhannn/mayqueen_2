@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
+  Check,
   CheckCircle2,
+  ChevronDown,
   Clock3,
   Copy,
-  Eye,
   Loader2,
   MessageCircle,
   Phone,
@@ -35,6 +37,7 @@ import {
   thc,
   useConfirm,
   useToast,
+  useEscLayer,
 } from "./ui";
 import { emptyMessage, useAdminList, useStats } from "./useAdminList";
 
@@ -61,23 +64,146 @@ function StatusSelect({ lead, onChange }) {
       setBusy(false);
     }
   };
+  // Menu chọn trạng thái tự vẽ (menu mặc định của trình duyệt không chỉnh kiểu được): thẻ nổi bo góc, mỗi trạng thái
+  // có icon + màu riêng, trạng thái hiện tại có dấu ✓. Vẽ qua portal (position: fixed) → không bị khung bảng cắt.
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState(null);
+  const [active, setActive] = useState(0);
+  const btnRef = useRef(null);
+  const menuRef = useRef(null);
+  const entries = Object.entries(LEAD_STATUS);
+  const s = LEAD_STATUS[lead.status];
+
+  const openMenu = () => {
+    const r = btnRef.current.getBoundingClientRect();
+    const below = window.innerHeight - r.bottom > 150; // sát đáy màn hình → mở lên trên
+    setPos({
+      left: r.left + r.width / 2,
+      ...(below ? { top: r.bottom + 6 } : { bottom: window.innerHeight - r.top + 6 }),
+    });
+    setActive(
+      Math.max(
+        0,
+        entries.findIndex(([v]) => v === lead.status),
+      ),
+    );
+    setOpen(true);
+  };
+  const pick = (value) => {
+    setOpen(false);
+    btnRef.current?.focus();
+    if (value !== lead.status) change(value);
+  };
+
+  useEscLayer(open, () => {
+    setOpen(false);
+    btnRef.current?.focus();
+  });
+  useEffect(() => {
+    if (!open) return;
+    menuRef.current?.querySelectorAll("[role=option]")[active]?.focus();
+  }, [open, active]);
+  useEffect(() => {
+    if (!open) return;
+    const outside = (e) =>
+      !menuRef.current?.contains(e.target) && !btnRef.current?.contains(e.target) && setOpen(false);
+    const close = () => setOpen(false);
+    document.addEventListener("mousedown", outside);
+    window.addEventListener("scroll", close, true); // cuộn trang / bảng → đóng (menu không trôi lệch chỗ)
+    window.addEventListener("resize", close);
+    return () => {
+      document.removeEventListener("mousedown", outside);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [open]);
+
+  const onMenuKey = (e) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      const d = e.key === "ArrowDown" ? 1 : -1;
+      setActive((i) => (i + d + entries.length) % entries.length);
+    } else if (e.key === "Tab") setOpen(false);
+  };
+
   return (
-    <select
-      value={lead.status}
-      disabled={busy}
-      onChange={(e) => change(e.target.value)}
-      aria-label={`Trạng thái của ${lead.name}`}
-      className={cn(
-        "h-8 cursor-pointer rounded-full border px-3 text-xs font-semibold outline-none disabled:opacity-60",
-        TONE_CLS[LEAD_STATUS[lead.status]?.tone],
-      )}
-    >
-      {Object.entries(LEAD_STATUS).map(([value, s]) => (
-        <option key={value} value={value}>
-          {s.label}
-        </option>
-      ))}
-    </select>
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        disabled={busy}
+        onClick={() => (open ? setOpen(false) : openMenu())}
+        onKeyDown={(e) => {
+          if ((e.key === "ArrowDown" || e.key === "ArrowUp") && !open) {
+            e.preventDefault();
+            openMenu();
+          }
+        }}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={`Trạng thái của ${lead.name}: ${s?.label}. Bấm để đổi`}
+        className={cn(
+          // mọi dòng CÙNG chiều rộng, chữ căn giữa, mũi tên gọn mép phải
+          "focus-visible:ring-sage-300 relative inline-flex h-8 w-32 items-center justify-center rounded-full border px-6 text-xs font-semibold transition-shadow outline-none focus-visible:ring-2 disabled:opacity-60",
+          open && "ring-sage-200 ring-2",
+          TONE_CLS[s?.tone],
+        )}
+      >
+        {busy ? <Loader2 className="size-3.5 animate-spin" aria-hidden="true" /> : s?.label}
+        <ChevronDown
+          className={cn(
+            "absolute right-2.5 size-3.5 opacity-70 transition-transform",
+            open && "rotate-180",
+          )}
+          aria-hidden="true"
+        />
+      </button>
+      {open &&
+        pos &&
+        createPortal(
+          <div
+            ref={menuRef}
+            role="listbox"
+            aria-label={`Đổi trạng thái của ${lead.name}`}
+            onKeyDown={onMenuKey}
+            style={{ left: pos.left, top: pos.top, bottom: pos.bottom }}
+            className="bg-pearl border-forest/10 fixed z-[80] w-48 -translate-x-1/2 [animation:fadeIn_.15s_ease-out] rounded-2xl border p-1.5 shadow-[0_18px_40px_-12px_rgba(20,42,28,.35)]"
+          >
+            {entries.map(([value, opt], i) => {
+              const Icon = STATUS_ICON[value];
+              const current = value === lead.status;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  role="option"
+                  aria-selected={current}
+                  tabIndex={i === active ? 0 : -1}
+                  onMouseEnter={() => setActive(i)}
+                  onClick={() => pick(value)}
+                  className={cn(
+                    "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm transition-colors outline-none",
+                    i === active ? "bg-sage-50" : "",
+                    current ? "text-forest font-semibold" : "text-ink-soft",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "grid size-7 shrink-0 place-items-center rounded-full border",
+                      TONE_CLS[opt.tone],
+                    )}
+                  >
+                    <Icon className="size-3.5" aria-hidden="true" />
+                  </span>
+                  <span className="flex-1">{opt.label}</span>
+                  {current && <Check className="text-sage-600 size-4" aria-hidden="true" />}
+                </button>
+              );
+            })}
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }
 
@@ -236,6 +362,25 @@ export default function LeadsPage() {
     setSelected((s) => (s?.id === lead.id ? lead : s));
     reloadStats();
   };
+  // Đổi trạng thái NGAY TRÊN DÒNG → tải lại theo bộ lọc đang chọn (VD đang lọc "Mới" mà chuyển sang "Đang liên hệ"
+  // thì dòng đó rời danh sách ngay)
+  const onRowChange = (lead) => {
+    onChange(lead);
+    list.reload();
+  };
+  // Đổi trong ngăn chi tiết → giữ nguyên tới khi đóng ngăn, đóng rồi mới tải lại (không mất dòng đang xem)
+  const changed = useRef(false);
+  const onDrawerChange = (lead) => {
+    onChange(lead);
+    changed.current = true;
+  };
+  const closeDrawer = () => {
+    setSelected(null);
+    if (changed.current) {
+      changed.current = false;
+      list.reload();
+    }
+  };
 
   const remove = async (lead) => {
     const ok = await confirm({
@@ -364,12 +509,10 @@ export default function LeadsPage() {
                   </td>
                   {/* đổi trạng thái / bấm nút: không mở ngăn chi tiết */}
                   <td className={tdc} onClick={(e) => e.stopPropagation()}>
-                    <StatusSelect lead={l} onChange={onChange} />
+                    <StatusSelect lead={l} onChange={onRowChange} />
                   </td>
+                  {/* bấm vào dòng là mở chi tiết (giống trang Đơn hàng) → chỉ còn nút xóa */}
                   <td className={cn(tdc, "whitespace-nowrap")} onClick={(e) => e.stopPropagation()}>
-                    <IconButton label="Xem chi tiết" onClick={() => setSelected(l)}>
-                      <Eye className="size-4" />
-                    </IconButton>
                     <IconButton
                       label="Xóa"
                       onClick={() => remove(l)}
@@ -388,8 +531,8 @@ export default function LeadsPage() {
       <LeadDrawer
         key={selected?.id ?? "none"}
         lead={selected}
-        onClose={() => setSelected(null)}
-        onChange={onChange}
+        onClose={closeDrawer}
+        onChange={onDrawerChange}
         onDelete={remove}
       />
     </div>

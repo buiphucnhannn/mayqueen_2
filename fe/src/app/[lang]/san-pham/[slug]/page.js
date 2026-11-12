@@ -4,6 +4,7 @@ import { CheckCircle2, Info, Leaf } from "lucide-react";
 import Link from "next/link";
 import ProductCard from "@/components/product/ProductCard";
 import ProductGallery from "@/components/product/ProductGallery";
+import StickyCenter from "@/components/ui/StickyCenter";
 import ProductPurchase from "@/components/product/ProductPurchase";
 import TestimonialSlider from "@/components/sections/TestimonialSlider";
 import Disclosure from "@/components/ui/Disclosure";
@@ -125,9 +126,10 @@ async function ProductContent({ params }) {
         <Container wide>
           <PageHeroCrumbs lang={lang} labels={L.ui} name={p.name} />
           <div className="mt-8 grid gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
-            <div className="reveal lg:sticky lg:top-28 lg:self-start" data-reveal="rise">
+            {/* dính khi cuộn, canh GIỮA vùng nhìn thấy (trên = dưới) — xem StickyCenter */}
+            <StickyCenter className="reveal" data-reveal="rise">
               <ProductGallery images={p.images} name={p.name} badge={p.badge} />
-            </div>
+            </StickyCenter>
 
             <div>
               {/* Trường nào trống trong Admin thì ẩn (không để dấu - hay khoảng trống thừa) */}
